@@ -1,0 +1,23 @@
+[Unit]
+Description=Zero Network Helper - خدمة وسيطة لإعدادات الشبكة (DHCP/Static)
+Documentation=https://github.com/your-org/Zero
+After=network.target NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+# بيئة تشغيل كاملة لأن systemd لا يمرّر PATH افتراضياً
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# استخدم ./deploy/install-services.sh لاستبدال /root/Zero بمسار مشروعك تلقائياً
+WorkingDirectory=/root/Zero
+ExecStart=/usr/bin/python3 /root/Zero/backend/zero_network_helper.py
+Restart=on-failure
+RestartSec=5
+# تشغيل بصلاحيات root لتطبيق nmcli
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zero-network-helper
+
+[Install]
+WantedBy=multi-user.target

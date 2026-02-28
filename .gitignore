@@ -1,0 +1,39 @@
+# Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+*.log
+
+# Database & secrets (لا تُرفع إلى GitHub)
+database.db
+app.db
+key.json
+kay.json
+vapid_keys.json
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Quran subproject
+frontend/quran/node_modules/
+
+# Qafiyah
+qafiyah/node_modules/
+qafiyah/apps/*/node_modules/
+qafiyah/packages/*/node_modules/
+
+# Misc
+.DS_Store
+*.tar.gz
+.deploy-exclude-list

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+psutil
+requests
+python-multipart
+jinja2
+python-jose[cryptography]
+passlib[bcrypt]
+ffmpeg-python
+pywebpush

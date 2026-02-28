@@ -1,0 +1,23 @@
+[Unit]
+Description=Zero - تطبيق البث والخدمات (واجهة + API)
+Documentation=file:///root/Zero/QUICK_START.md
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# استخدم ./deploy/install-services.sh لاستبدال /root/Zero بمسار مشروعك تلقائياً
+WorkingDirectory=/root/Zero
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=ZERO_ROOT=/root/Zero
+# تشغيل الخادم فقط (يفترض أن الواجهة مُبناة مسبقاً بـ start-production.sh أو npm run build)
+ExecStart=/usr/bin/python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zero
+
+[Install]
+WantedBy=multi-user.target
