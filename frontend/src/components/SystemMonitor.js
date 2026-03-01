@@ -10,6 +10,7 @@ import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import ThermostatIcon from '@mui/icons-material/Thermostat';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -238,6 +239,30 @@ const SystemMonitor = ({ auth }) => {
                             value={stats.cpu_usage} 
                             unit="%" 
                         />
+                        {stats.cpu_temp != null && (
+                            <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: 0.5, 
+                                mt: 0.5 
+                            }}>
+                                <ThermostatIcon sx={{ 
+                                    fontSize: 18, 
+                                    color: stats.cpu_temp > 80 ? 'error.main' : stats.cpu_temp > 60 ? 'warning.main' : 'success.main' 
+                                }} />
+                                <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                        fontFamily: 'monospace', 
+                                        fontWeight: 'bold',
+                                        color: stats.cpu_temp > 80 ? 'error.main' : stats.cpu_temp > 60 ? 'warning.main' : 'success.main'
+                                    }}
+                                >
+                                    {stats.cpu_temp}°C
+                                </Typography>
+                            </Box>
+                        )}
                     </Paper>
                 </Grid>
                 

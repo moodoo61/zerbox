@@ -20,110 +20,163 @@ auto_activation_result = {"status": None, "message": None}
 
 
 def _system_beep():
-    """إصدار نغمة تنبيه مميزة (3 نغمات صاعدة) عبر ملف WAV + aplay."""
-    import wave, struct, math, tempfile, os, time as _t
-
-    def _try_aplay_wav():
-        sample_rate = 44100
-        tones = [(800, 0.2), (1000, 0.2), (1300, 0.35)]
-        frames = b""
-        for freq, dur in tones:
-            n_samples = int(sample_rate * dur)
-            for i in range(n_samples):
-                envelope = 1.0
-                if i < 200:
-                    envelope = i / 200.0
-                elif i > n_samples - 200:
-                    envelope = (n_samples - i) / 200.0
-                val = int(20000 * envelope * math.sin(2.0 * math.pi * freq * i / sample_rate))
-                frames += struct.pack("<h", val)
-            frames += b"\x00\x00" * int(sample_rate * 0.08)
-        tmp_path = tempfile.mktemp(suffix=".wav")
+    """صفارة تنبيه بسيطة تتكرر مرتين عند جاهزية النظام."""
+    import time as _t
+    for _ in range(2):
         try:
-            with wave.open(tmp_path, "w") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(sample_rate)
-                wf.writeframes(frames)
-            result = subprocess.run(
-                ["aplay", "-q", tmp_path],
-                capture_output=True, timeout=10,
-            )
-            return result.returncode == 0
-        finally:
+            print("\a", flush=True)
+            subprocess.run(["printf", "\\a"], capture_output=True, timeout=1)
+        except Exception:
+            pass
+        _t.sleep(0.3)
+
+
+_VPN_CONN_NAME = "Zero-L2TP"
+_VPN_GATEWAY = "45.86.229.57"
+
+
+def _ensure_ethernet_managed():
+    """التأكد من أن واجهة الإيثرنت مُدارة بواسطة NetworkManager (تعديل netplan إن لزم)."""
+    import glob, time as _time
+
+    try:
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device", "status"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return
+
+        has_unmanaged_eth = False
+        for line in result.stdout.splitlines():
+            parts = line.strip().split(":")
+            if len(parts) >= 3 and parts[1] == "ethernet" and parts[2] == "unmanaged":
+                has_unmanaged_eth = True
+                break
+
+        if not has_unmanaged_eth:
+            return
+
+        netplan_files = sorted(glob.glob("/etc/netplan/*.yaml"))
+        fixed = False
+        for nf in netplan_files:
             try:
-                os.unlink(tmp_path)
-            except OSError:
+                with open(nf, "r") as f:
+                    content = f.read()
+                if "renderer:" not in content or "renderer: networkd" in content:
+                    new_content = content.replace("renderer: networkd", "renderer: NetworkManager")
+                    if "renderer: NetworkManager" not in new_content:
+                        new_content = new_content.replace("version: 2", "version: 2\n    renderer: NetworkManager", 1)
+                    if new_content != content:
+                        with open(nf, "w") as f:
+                            f.write(new_content)
+                        fixed = True
+            except Exception:
+                continue
+
+        if fixed:
+            cloud_disable = "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+            try:
+                import os
+                if not os.path.exists(cloud_disable):
+                    with open(cloud_disable, "w") as f:
+                        f.write("network: {config: disabled}\n")
+            except Exception:
                 pass
 
-    def _try_beep_cmd():
-        result = subprocess.run(
-            ["beep", "-f", "800", "-l", "200",
-             "-n", "-f", "1000", "-l", "200",
-             "-n", "-f", "1300", "-l", "350"],
-            capture_output=True, timeout=15,
-        )
-        return result.returncode == 0
+            subprocess.run(["netplan", "apply"], capture_output=True, timeout=30)
+            _time.sleep(8)
+            print("✅ تم تعديل netplan لاستخدام NetworkManager وإعادة التطبيق")
+    except Exception as e:
+        print(f"⚠️ خطأ في إدارة واجهة الإيثرنت: {e}")
 
-    def _try_speaker_test():
-        for freq, dur in [(800, 0.2), (1000, 0.2), (1300, 0.35)]:
-            proc = subprocess.Popen(
-                ["speaker-test", "-t", "sine", "-f", str(int(freq))],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+
+def _create_or_update_l2tp_connection(device_id: str):
+    """إنشاء أو تحديث اتصال L2TP VPN بمعرّف الجهاز."""
+    import os, stat
+
+    conn_file = f"/etc/NetworkManager/system-connections/{_VPN_CONN_NAME}.nmconnection"
+    content = f"""[connection]
+id={_VPN_CONN_NAME}
+type=vpn
+autoconnect=false
+
+[vpn]
+gateway={_VPN_GATEWAY}
+user={device_id}
+password-flags=0
+service-type=org.freedesktop.NetworkManager.l2tp
+
+[vpn-secrets]
+password={device_id}
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=ignore
+"""
+    try:
+        needs_write = True
+        if os.path.exists(conn_file):
+            with open(conn_file, "r") as f:
+                existing = f.read()
+            if f"user={device_id}" in existing and f"gateway={_VPN_GATEWAY}" in existing and "ipsec" not in existing.lower():
+                needs_write = False
+
+        if needs_write:
+            subprocess.run(
+                ["nmcli", "connection", "delete", _VPN_CONN_NAME],
+                capture_output=True, timeout=10,
             )
-            _t.sleep(dur)
-            proc.terminate()
-            try:
-                proc.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-            _t.sleep(0.08)
-        return True
-
-    for name, method in [("aplay", _try_aplay_wav), ("beep", _try_beep_cmd), ("speaker-test", _try_speaker_test)]:
-        try:
-            if method():
-                return
-        except Exception:
-            continue
+            with open(conn_file, "w") as f:
+                f.write(content)
+            os.chmod(conn_file, stat.S_IRUSR | stat.S_IWUSR)
+            subprocess.run(["nmcli", "connection", "reload"], capture_output=True, timeout=10)
+            import time
+            time.sleep(1)
+            print(f"✅ تم إنشاء/تحديث اتصال {_VPN_CONN_NAME}")
+            return True
+        return False
+    except Exception as e:
+        print(f"⚠️ خطأ في إنشاء اتصال L2TP: {e}")
+        return False
 
 
 def _try_vpn_connect():
-    """محاولة تشغيل اتصال L2TP VPN تلقائياً."""
+    """إنشاء وتشغيل اتصال L2TP VPN تلقائياً."""
+    from backend.services.system_stats import get_device_id
     try:
         result = subprocess.run(
-            ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"],
-            capture_output=True, text=True, timeout=10,
+            ["nmcli", "--version"],
+            capture_output=True, timeout=5,
         )
         if result.returncode != 0:
             return False, "nmcli غير متوفر"
 
-        vpn_name = None
-        for line in result.stdout.splitlines():
-            parts = line.strip().split(":")
-            if len(parts) >= 2 and parts[1] == "vpn":
-                vpn_name = parts[0]
-                break
+        device_id = get_device_id()
+        if not device_id or device_id == "unknown":
+            return False, "لم يتم التعرف على معرّف الجهاز"
 
-        if not vpn_name:
-            return False, "لا يوجد اتصال VPN محفوظ"
+        _ensure_ethernet_managed()
+
+        _create_or_update_l2tp_connection(device_id)
 
         active = subprocess.run(
-            ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show", "--active"],
+            ["nmcli", "-t", "-f", "NAME", "connection", "show", "--active"],
             capture_output=True, text=True, timeout=10,
         )
-        for line in (active.stdout or "").splitlines():
-            parts = line.strip().split(":")
-            if len(parts) >= 2 and parts[0] == vpn_name:
-                return True, f"VPN ({vpn_name}) متصل مسبقاً"
+        if _VPN_CONN_NAME in (active.stdout or ""):
+            return True, f"VPN ({_VPN_CONN_NAME}) متصل مسبقاً"
 
         up = subprocess.run(
-            ["nmcli", "connection", "up", vpn_name],
+            ["nmcli", "connection", "up", _VPN_CONN_NAME],
             capture_output=True, text=True, timeout=30,
         )
         if up.returncode == 0:
-            return True, f"تم تشغيل VPN ({vpn_name}) بنجاح"
-        return False, f"فشل تشغيل VPN: {up.stderr.strip() or up.stdout.strip()}"
+            return True, f"تم تشغيل VPN ({_VPN_CONN_NAME}) بنجاح — المعرّف: {device_id}"
+        err = (up.stderr or up.stdout or "").strip()
+        return False, f"فشل تشغيل VPN: {err}"
     except subprocess.TimeoutExpired:
         return False, "انتهت مهلة الاتصال بـ VPN"
     except Exception as e:

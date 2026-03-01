@@ -97,8 +97,31 @@ def get_system_stats():
 
     identity = get_machine_identity()
 
+    cpu_temp = None
+    try:
+        temps = psutil.sensors_temperatures()
+        for key in ("coretemp", "k10temp", "cpu_thermal", "soc_thermal"):
+            if key in temps and temps[key]:
+                for entry in temps[key]:
+                    if entry.current and entry.current > 0 and entry.current < 150:
+                        cpu_temp = round(entry.current, 1)
+                        break
+                if cpu_temp is not None:
+                    break
+        if cpu_temp is None:
+            for entries in temps.values():
+                for entry in entries:
+                    if entry.current and 10 < entry.current < 120:
+                        cpu_temp = round(entry.current, 1)
+                        break
+                if cpu_temp is not None:
+                    break
+    except Exception:
+        pass
+
     return {
         "cpu_usage": cpu_usage,
+        "cpu_temp": cpu_temp,
         "memory_usage": psutil.virtual_memory().percent,
         "disk_usage": psutil.disk_usage('/').percent,
         "uptime_seconds": uptime_seconds,
