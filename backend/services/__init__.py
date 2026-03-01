@@ -75,6 +75,9 @@ from .notifications import (
     send_scheduled_notifications,
 )
 
+# سجل أحداث النظام
+from .system_log import log_event, get_logs, clear_logs
+
 # الخدمات الافتراضية
 from .default_services import (
     get_server_ip,

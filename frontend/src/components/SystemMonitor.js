@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Paper, Alert, Skeleton, Button, Snackbar } from '@mui/material';
+import { Box, Typography, Grid, Paper, Alert, Skeleton, Button, Snackbar, Chip, IconButton, Collapse } from '@mui/material';
 import Gauge from './Gauge';
 import ComputerIcon from '@mui/icons-material/Computer';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -10,6 +10,10 @@ import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 function formatUptime(seconds) {
     if (isNaN(seconds) || seconds < 0) {
@@ -29,12 +33,21 @@ function formatBytesPerSec(bps) {
     return `${(bps / (1024 * 1024)).toFixed(2)} MB/s`;
 }
 
+const LOG_LEVEL_CONFIG = {
+    success: { color: '#2e7d32', bg: '#e8f5e9', label: 'نجاح' },
+    info:    { color: '#1565c0', bg: '#e3f2fd', label: 'معلومة' },
+    warning: { color: '#e65100', bg: '#fff3e0', label: 'تحذير' },
+    error:   { color: '#c62828', bg: '#ffebee', label: 'خطأ' },
+};
+
 const SystemMonitor = ({ auth }) => {
     const [stats, setStats] = useState(null);
     const [error, setError] = useState('');
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [isClearing, setIsClearing] = useState(false);
     const [currentTime, setCurrentTime] = useState(() => new Date());
+    const [logs, setLogs] = useState([]);
+    const [logsExpanded, setLogsExpanded] = useState(true);
 
     useEffect(() => {
         const t = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -66,6 +79,37 @@ const SystemMonitor = ({ auth }) => {
 
         return () => clearInterval(intervalId);
     }, [auth]);
+
+    useEffect(() => {
+        if (!auth) return;
+        const fetchLogs = async () => {
+            try {
+                const res = await fetch('/api/system-logs?limit=50', {
+                    headers: { 'Authorization': 'Basic ' + auth }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setLogs(data.logs || []);
+                }
+            } catch (_) { /* ignore */ }
+        };
+        fetchLogs();
+        const id = setInterval(fetchLogs, 10000);
+        return () => clearInterval(id);
+    }, [auth]);
+
+    const handleClearLogs = async () => {
+        try {
+            const res = await fetch('/api/system-logs', {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Basic ' + auth }
+            });
+            if (res.ok) {
+                setLogs([]);
+                setSnackbar({ open: true, message: 'تم مسح السجل', severity: 'success' });
+            }
+        } catch (_) { /* ignore */ }
+    };
 
     if (error) {
         return (
@@ -351,6 +395,88 @@ const SystemMonitor = ({ auth }) => {
                                     </Typography>
                                 )}
                         </Box>
+                    </Paper>
+                </Grid>
+
+                {/* سجل أحداث النظام */}
+                <Grid item xs={12}>
+                    <Paper sx={{ 
+                        p: 1.5, 
+                        borderRadius: 2,
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: logsExpanded ? 1 : 0 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={() => setLogsExpanded(p => !p)}>
+                                <TerminalIcon color="primary" fontSize="small" />
+                                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold' }}>
+                                    سجل الأحداث
+                                </Typography>
+                                <Chip label={logs.length} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                                <IconButton size="small">
+                                    {logsExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                                </IconButton>
+                            </Box>
+                            {logsExpanded && logs.length > 0 && (
+                                <IconButton size="small" onClick={handleClearLogs} title="مسح السجل">
+                                    <DeleteSweepIcon fontSize="small" color="action" />
+                                </IconButton>
+                            )}
+                        </Box>
+                        <Collapse in={logsExpanded}>
+                            <Box sx={{ 
+                                maxHeight: 260, 
+                                overflowY: 'auto', 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: 0.5,
+                                '&::-webkit-scrollbar': { width: 6 },
+                                '&::-webkit-scrollbar-thumb': { background: '#ccc', borderRadius: 3 }
+                            }}>
+                                {logs.length > 0 ? logs.map((entry, i) => {
+                                    const cfg = LOG_LEVEL_CONFIG[entry.level] || LOG_LEVEL_CONFIG.info;
+                                    return (
+                                        <Box
+                                            key={i}
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: 1,
+                                                py: 0.5,
+                                                px: 1,
+                                                borderRadius: 1,
+                                                bgcolor: cfg.bg,
+                                                borderRight: `3px solid ${cfg.color}`,
+                                            }}
+                                        >
+                                            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary', whiteSpace: 'nowrap', minWidth: 55, pt: 0.2 }}>
+                                                {entry.timestamp ? entry.timestamp.split(' ')[1] : ''}
+                                            </Typography>
+                                            <Chip 
+                                                label={cfg.label} 
+                                                size="small" 
+                                                sx={{ 
+                                                    height: 18, fontSize: 10, fontWeight: 'bold',
+                                                    bgcolor: cfg.color, color: '#fff', minWidth: 42
+                                                }} 
+                                            />
+                                            <Typography variant="body2" sx={{ flex: 1, wordBreak: 'break-word', lineHeight: 1.4 }}>
+                                                {entry.message}
+                                            </Typography>
+                                            <Chip 
+                                                label={entry.source} 
+                                                size="small" 
+                                                variant="outlined"
+                                                sx={{ height: 18, fontSize: 10, opacity: 0.7 }} 
+                                            />
+                                        </Box>
+                                    );
+                                }) : (
+                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                                        لا توجد أحداث مسجلة
+                                    </Typography>
+                                )}
+                            </Box>
+                        </Collapse>
                     </Paper>
                 </Grid>
             </Grid>

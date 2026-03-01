@@ -12,79 +12,135 @@ from backend.auth import check_auth
 import shutil
 import subprocess
 from pathlib import Path
+from backend.services.system_log import log_event
 
 
 # Store auto-activation result for frontend display
 auto_activation_result = {"status": None, "message": None}
 
+
 def _system_beep():
-    """إصدار نغمة تنبيه مميزة (3 نغمات صاعدة) عند جاهزية النظام."""
-    import time as _t
+    """إصدار نغمة تنبيه مميزة (3 نغمات صاعدة) عبر ملف WAV + aplay."""
+    import wave, struct, math, tempfile, os, time as _t
+
+    def _try_aplay_wav():
+        sample_rate = 44100
+        tones = [(800, 0.2), (1000, 0.2), (1300, 0.35)]
+        frames = b""
+        for freq, dur in tones:
+            n_samples = int(sample_rate * dur)
+            for i in range(n_samples):
+                envelope = 1.0
+                if i < 200:
+                    envelope = i / 200.0
+                elif i > n_samples - 200:
+                    envelope = (n_samples - i) / 200.0
+                val = int(20000 * envelope * math.sin(2.0 * math.pi * freq * i / sample_rate))
+                frames += struct.pack("<h", val)
+            frames += b"\x00\x00" * int(sample_rate * 0.08)
+        tmp_path = tempfile.mktemp(suffix=".wav")
+        try:
+            with wave.open(tmp_path, "w") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sample_rate)
+                wf.writeframes(frames)
+            result = subprocess.run(
+                ["aplay", "-q", tmp_path],
+                capture_output=True, timeout=10,
+            )
+            return result.returncode == 0
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
     def _try_beep_cmd():
-        subprocess.run(
-            ["beep", "-f", "800", "-l", "150",
-             "-n", "-f", "1000", "-l", "150",
-             "-n", "-f", "1200", "-l", "250"],
-            capture_output=True, timeout=5,
+        result = subprocess.run(
+            ["beep", "-f", "800", "-l", "200",
+             "-n", "-f", "1000", "-l", "200",
+             "-n", "-f", "1300", "-l", "350"],
+            capture_output=True, timeout=15,
         )
+        return result.returncode == 0
 
     def _try_speaker_test():
-        for freq, dur in [(800, 0.15), (1000, 0.15), (1200, 0.25)]:
+        for freq, dur in [(800, 0.2), (1000, 0.2), (1300, 0.35)]:
             proc = subprocess.Popen(
                 ["speaker-test", "-t", "sine", "-f", str(int(freq))],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             _t.sleep(dur)
             proc.terminate()
-            proc.wait(timeout=2)
-            _t.sleep(0.05)
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            _t.sleep(0.08)
+        return True
 
-    def _try_python_wave():
-        import wave, struct, math, tempfile
-        sample_rate = 44100
-        tones = [(800, 0.15), (1000, 0.15), (1200, 0.25)]
-        frames = b""
-        for freq, dur in tones:
-            n_samples = int(sample_rate * dur)
-            for i in range(n_samples):
-                val = int(16000 * math.sin(2 * math.pi * freq * i / sample_rate))
-                frames += struct.pack("<h", val)
-            frames += b"\x00\x00" * int(sample_rate * 0.05)
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    for name, method in [("aplay", _try_aplay_wav), ("beep", _try_beep_cmd), ("speaker-test", _try_speaker_test)]:
         try:
-            with wave.open(tmp.name, "w") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(sample_rate)
-                wf.writeframes(frames)
-            subprocess.run(["aplay", tmp.name], capture_output=True, timeout=5)
-        finally:
-            import os
-            os.unlink(tmp.name)
-
-    def _try_bell():
-        for _ in range(3):
-            print("\a", end="", flush=True)
-            _t.sleep(0.2)
-
-    for method in [_try_beep_cmd, _try_speaker_test, _try_python_wave, _try_bell]:
-        try:
-            method()
-            return
+            if method():
+                return
         except Exception:
             continue
+
+
+def _try_vpn_connect():
+    """محاولة تشغيل اتصال L2TP VPN تلقائياً."""
+    try:
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return False, "nmcli غير متوفر"
+
+        vpn_name = None
+        for line in result.stdout.splitlines():
+            parts = line.strip().split(":")
+            if len(parts) >= 2 and parts[1] == "vpn":
+                vpn_name = parts[0]
+                break
+
+        if not vpn_name:
+            return False, "لا يوجد اتصال VPN محفوظ"
+
+        active = subprocess.run(
+            ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show", "--active"],
+            capture_output=True, text=True, timeout=10,
+        )
+        for line in (active.stdout or "").splitlines():
+            parts = line.strip().split(":")
+            if len(parts) >= 2 and parts[0] == vpn_name:
+                return True, f"VPN ({vpn_name}) متصل مسبقاً"
+
+        up = subprocess.run(
+            ["nmcli", "connection", "up", vpn_name],
+            capture_output=True, text=True, timeout=30,
+        )
+        if up.returncode == 0:
+            return True, f"تم تشغيل VPN ({vpn_name}) بنجاح"
+        return False, f"فشل تشغيل VPN: {up.stderr.strip() or up.stdout.strip()}"
+    except subprocess.TimeoutExpired:
+        return False, "انتهت مهلة الاتصال بـ VPN"
+    except Exception as e:
+        return False, f"خطأ في تشغيل VPN: {e}"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global auto_activation_result
+    log_event("بدء تشغيل النظام...", "info", "startup")
     print("Creating tables..")
     create_db_and_tables()
 
     # Initialize default services
     with next(get_session()) as db:
         services.initialize_default_services(db)
+    log_event("تم تهيئة الخدمات الافتراضية", "info", "startup")
 
     # توليد مفتاح جديد من الخادم عبر UUID الجهاز قبل التفعيل
     print("=" * 50)
@@ -94,10 +150,13 @@ async def lifespan(app: FastAPI):
         refreshed_key = services.refresh_key_on_startup()
         if refreshed_key:
             print(f"✅ المفتاح جاهز ({refreshed_key[:12]}...)")
+            log_event(f"تم الحصول على مفتاح البث ({refreshed_key[:8]}...)", "success", "key")
         else:
             print("⚠️ لم يتم الحصول على مفتاح — التفعيل التلقائي قد يفشل")
+            log_event("لم يتم الحصول على مفتاح بث", "warning", "key")
     except Exception as e:
         print(f"❌ خطأ أثناء توليد المفتاح: {e}")
+        log_event(f"خطأ في توليد المفتاح: {e}", "error", "key")
 
     # Auto-activate streaming service on startup
     print("🔄 بدء التفعيل التلقائي لخدمة البث...")
@@ -110,20 +169,23 @@ async def lifespan(app: FastAPI):
                     "message": "تم تفعيل خدمة البث المباشر تلقائياً عند بدء تشغيل النظام"
                 }
                 print("✅ تم التفعيل التلقائي لخدمة البث بنجاح")
+                log_event("تم تفعيل خدمة البث تلقائياً", "success", "streaming")
             else:
                 auto_activation_result = {
                     "status": "warning",
                     "message": "تم محاولة التفعيل التلقائي ولكن الخدمة غير نشطة"
                 }
                 print("⚠️ التفعيل التلقائي: الخدمة غير نشطة")
+                log_event("خدمة البث غير نشطة بعد التفعيل", "warning", "streaming")
     except Exception as e:
         auto_activation_result = {
             "status": "error",
             "message": f"فشل التفعيل التلقائي: {str(e)}"
         }
         print(f"❌ فشل التفعيل التلقائي: {e}")
+        log_event(f"فشل تفعيل البث: {e}", "error", "streaming")
 
-    # تفعيل الهوتسبوت تلقائياً إلا إذا عطّله المستخدم (ضبط محفوظ في قاعدة البيانات)
+    # تفعيل الهوتسبوت تلقائياً إلا إذا عطّله المستخدم
     try:
         with next(get_session()) as db:
             settings = get_or_create_settings(db)
@@ -136,16 +198,37 @@ async def lifespan(app: FastAPI):
                     ok, msg = network_utils.wifi_hotspot_start(ifname=ifname, ssid="ZeroLAG", gateway="192.168.60.1/24")
                     if ok:
                         print("✅ تم التفعيل التلقائي للهوتسبوت")
+                        log_event("تم تفعيل الهوتسبوت تلقائياً", "success", "hotspot")
                     else:
                         print("⚠️ التفعيل التلقائي للهوتسبوت:", msg)
+                        log_event(f"فشل تفعيل الهوتسبوت: {msg}", "warning", "hotspot")
+                else:
+                    log_event("الهوتسبوت: nmcli أو helper غير متوفر", "warning", "hotspot")
+            else:
+                log_event("الهوتسبوت معطّل من الإعدادات", "info", "hotspot")
     except Exception as e:
         print("⚠️ التفعيل التلقائي للهوتسبوت فشل:", e)
+        log_event(f"خطأ في تفعيل الهوتسبوت: {e}", "error", "hotspot")
+
+    # تشغيل اتصال L2TP VPN تلقائياً
+    try:
+        vpn_ok, vpn_msg = _try_vpn_connect()
+        if vpn_ok:
+            print(f"✅ VPN: {vpn_msg}")
+            log_event(vpn_msg, "success", "vpn")
+        else:
+            print(f"⚠️ VPN: {vpn_msg}")
+            log_event(vpn_msg, "warning", "vpn")
+    except Exception as e:
+        print(f"⚠️ خطأ في تشغيل VPN: {e}")
+        log_event(f"خطأ في تشغيل VPN: {e}", "error", "vpn")
 
     # صفارة تنبيه عند جاهزية النظام
     print("=" * 50)
     print("🔔 النظام جاهز للاستخدام!")
     print("=" * 50)
     _system_beep()
+    log_event("النظام جاهز للاستخدام", "success", "startup")
 
     yield
 
@@ -462,6 +545,21 @@ async def upload_image(file: UploadFile = File(...)):
 @app.get("/api/stats", tags=["Statistics"])
 def get_system_stats_endpoint(username: str = Depends(check_auth)):
     return services.get_system_stats()
+
+
+@app.get("/api/system-logs", tags=["Statistics"])
+def get_system_logs(limit: int = 100, level: Optional[str] = None, username: str = Depends(check_auth)):
+    """جلب سجل أحداث النظام (آخر الأحداث أولاً)."""
+    from backend.services.system_log import get_logs
+    return {"logs": get_logs(limit=limit, level=level)}
+
+
+@app.delete("/api/system-logs", tags=["Statistics"])
+def clear_system_logs(username: str = Depends(check_auth)):
+    """مسح سجل الأحداث."""
+    from backend.services.system_log import clear_logs
+    count = clear_logs()
+    return {"status": "ok", "cleared": count}
 
 
 @app.post("/api/clear-memory", tags=["Statistics"])
