@@ -17,16 +17,62 @@ from pathlib import Path
 # Store auto-activation result for frontend display
 auto_activation_result = {"status": None, "message": None}
 
+def _system_beep():
+    """إصدار صفارة تنبيه عبر عدة طرق لضمان السماع على مختلف الأنظمة."""
+    methods = [
+        lambda: subprocess.run(
+            ["beep", "-f", "1000", "-l", "300"],
+            capture_output=True, timeout=3,
+        ),
+        lambda: subprocess.run(
+            ["speaker-test", "-t", "sine", "-f", "1000", "-l", "1"],
+            capture_output=True, timeout=3,
+        ),
+        lambda: subprocess.run(
+            ["aplay", "/usr/share/sounds/sound-icons/beginning-of-line"],
+            capture_output=True, timeout=3,
+        ),
+        lambda: (
+            open("/dev/console", "w").write("\a"),
+        ),
+        lambda: subprocess.run(
+            ["bash", "-c",
+             "( speaker-test -t sine -f 1000 >/dev/null 2>&1 & PID=$!; sleep 0.3; kill $PID 2>/dev/null ) &"],
+            capture_output=True, timeout=3,
+        ),
+        lambda: print("\a", end="", flush=True),
+    ]
+    for method in methods:
+        try:
+            method()
+            return
+        except Exception:
+            continue
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global auto_activation_result
     print("Creating tables..")
     create_db_and_tables()
-    
+
     # Initialize default services
     with next(get_session()) as db:
         services.initialize_default_services(db)
-    
+
+    # توليد مفتاح جديد من الخادم عبر UUID الجهاز قبل التفعيل
+    print("=" * 50)
+    print("🔑 مرحلة توليد/تحديث مفتاح البث...")
+    print("=" * 50)
+    try:
+        refreshed_key = services.refresh_key_on_startup()
+        if refreshed_key:
+            print(f"✅ المفتاح جاهز ({refreshed_key[:12]}...)")
+        else:
+            print("⚠️ لم يتم الحصول على مفتاح — التفعيل التلقائي قد يفشل")
+    except Exception as e:
+        print(f"❌ خطأ أثناء توليد المفتاح: {e}")
+
     # Auto-activate streaming service on startup
     print("🔄 بدء التفعيل التلقائي لخدمة البث...")
     try:
@@ -35,7 +81,7 @@ async def lifespan(app: FastAPI):
             if result and result.is_active:
                 auto_activation_result = {
                     "status": "success",
-                    "message": f"تم تفعيل خدمة البث المباشر تلقائياً عند بدء تشغيل النظام"
+                    "message": "تم تفعيل خدمة البث المباشر تلقائياً عند بدء تشغيل النظام"
                 }
                 print("✅ تم التفعيل التلقائي لخدمة البث بنجاح")
             else:
@@ -69,13 +115,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print("⚠️ التفعيل التلقائي للهوتسبوت فشل:", e)
 
-    # صفارة (beep) عند جاهزية النظام للاستخدام
-    try:
-        print("\a", flush=True)
-        subprocess.run(["printf", "\\a"], capture_output=True, timeout=1)
-    except Exception:
-        pass
-    print("🔔 النظام جاهز للاستخدام")
+    # صفارة تنبيه عند جاهزية النظام
+    print("=" * 50)
+    print("🔔 النظام جاهز للاستخدام!")
+    print("=" * 50)
+    _system_beep()
 
     yield
 

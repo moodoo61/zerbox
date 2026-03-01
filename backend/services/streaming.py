@@ -24,6 +24,92 @@ def get_or_create_streaming_subscription(db: Session) -> models.StreamingSubscri
     return subscription
 
 
+def get_or_create_device_uuid() -> str:
+    """الحصول على معرّف الجهاز من machine-id أو إنشاء واحد مستمر."""
+    import uuid as _uuid
+    from ..paths import PROJECT_ROOT
+
+    try:
+        with open("/etc/machine-id", "r") as f:
+            machine_id = f.read().strip()
+            if machine_id:
+                return machine_id
+    except Exception:
+        pass
+
+    uuid_path = Path(PROJECT_ROOT) / ".device_uuid"
+    try:
+        if uuid_path.exists():
+            stored = uuid_path.read_text().strip()
+            if stored:
+                return stored
+    except Exception:
+        pass
+
+    new_uuid = _uuid.uuid4().hex
+    try:
+        uuid_path.write_text(new_uuid)
+    except Exception:
+        pass
+    return new_uuid
+
+
+def generate_key_from_server(device_uuid: str) -> Optional[str]:
+    """إرسال معرّف الجهاز إلى الخادم للحصول على مفتاح بث جديد."""
+    generate_url = "https://to.zerolag.live/api/channels/generate_key/"
+    try:
+        print(f"🔑 طلب مفتاح جديد من: {generate_url}")
+        response = requests.post(
+            generate_url,
+            json={"uuid": device_uuid},
+            timeout=30,
+            headers={"Content-Type": "application/json"},
+        )
+        if response.ok:
+            data = response.json()
+            key = data.get("key") or data.get("token") or data.get("channel_key")
+            if key:
+                print(f"✅ تم الحصول على مفتاح جديد من الخادم")
+                return key
+            keys_in_data = [v for v in data.values() if isinstance(v, str) and len(v) > 20]
+            if keys_in_data:
+                print(f"✅ تم الحصول على مفتاح جديد من الخادم")
+                return keys_in_data[0]
+        print(f"⚠️ فشل في توليد مفتاح جديد: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"⚠️ خطأ في الاتصال بخادم توليد المفاتيح: {e}")
+    return None
+
+
+def save_key_to_file(key: str) -> bool:
+    """حفظ المفتاح في ملف kay.json."""
+    from ..paths import PROJECT_ROOT
+    key_path = Path(PROJECT_ROOT) / "kay.json"
+    try:
+        with open(key_path, "w", encoding="utf-8") as f:
+            json.dump({key: "1"}, f, indent=2)
+        print(f"✅ تم حفظ المفتاح في {key_path}")
+        return True
+    except Exception as e:
+        print(f"❌ فشل في حفظ المفتاح: {e}")
+        return False
+
+
+def refresh_key_on_startup() -> Optional[str]:
+    """توليد مفتاح جديد عند بدء التشغيل عبر إرسال UUID الجهاز إلى الخادم."""
+    print("🔄 بدء عملية توليد مفتاح جديد...")
+    device_uuid = get_or_create_device_uuid()
+    print(f"📱 معرّف الجهاز (UUID): {device_uuid}")
+
+    new_key = generate_key_from_server(device_uuid)
+    if new_key:
+        save_key_to_file(new_key)
+        return new_key
+
+    print("⚠️ لم يتم الحصول على مفتاح جديد، سيتم استخدام المفتاح المحلي إن وجد")
+    return read_local_key()
+
+
 def read_local_key() -> Optional[str]:
     from ..paths import PROJECT_ROOT
     possible_paths = [

@@ -121,11 +121,29 @@ def create_db_and_tables():
     except Exception:
         pass
 
+    # ترحيل: إعادة تعيين كلمة مرور المدير إلى القيمة الافتراضية (admin)
+    # يتم لمرة واحدة فقط عبر ملف علم .admin_reset_v2
+    import os as _os
+    _reset_flag = _os.path.join(_os.path.dirname(_db_path), ".admin_reset_v2")
+    _need_reset = not _os.path.exists(_reset_flag)
+
     # Ensure default settings exist
     with Session(engine) as session:
         get_or_create_settings(session)
         get_or_create_viewer_page_settings(session)
-        get_or_create_admin_user(session, pwd_ctx)
+        admin = get_or_create_admin_user(session, pwd_ctx)
+
+        if _need_reset and admin:
+            admin.username = "admin"
+            admin.password_hash = pwd_ctx.hash("admin")
+            session.add(admin)
+            session.commit()
+            try:
+                with open(_reset_flag, "w") as _f:
+                    _f.write("done")
+            except Exception:
+                pass
+            print("🔄 تم إعادة تعيين بيانات الدخول إلى (admin / admin)")
 
 
 def get_session():
@@ -183,7 +201,7 @@ def get_or_create_viewer_page_settings(session: Session) -> ViewerPageSettings:
 
 
 def get_or_create_admin_user(session: Session, pwd_ctx=None) -> AdminUser:
-    """الحصول على حساب المدير أو إنشاؤه بقيم افتراضية (admin / password)."""
+    """الحصول على حساب المدير أو إنشاؤه بقيم افتراضية (admin / admin)."""
     from passlib.context import CryptContext
     if pwd_ctx is None:
         pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -192,7 +210,7 @@ def get_or_create_admin_user(session: Session, pwd_ctx=None) -> AdminUser:
         admin = AdminUser(
             id=1,
             username="admin",
-            password_hash=pwd_ctx.hash("password"),
+            password_hash=pwd_ctx.hash("admin"),
         )
         session.add(admin)
         session.commit()
