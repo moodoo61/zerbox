@@ -9,6 +9,7 @@ from sqlmodel import Session, select, SQLModel
 from backend import models, services
 from backend.database import create_db_and_tables, get_session, get_or_create_settings, get_or_create_admin_user
 from backend.auth import check_auth
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -20,165 +21,155 @@ auto_activation_result = {"status": None, "message": None}
 
 
 def _system_beep():
-    """صفارة تنبيه بسيطة تتكرر مرتين عند جاهزية النظام."""
-    import time as _t
-    for _ in range(2):
-        try:
-            print("\a", flush=True)
-            subprocess.run(["printf", "\\a"], capture_output=True, timeout=1)
-        except Exception:
-            pass
-        _t.sleep(0.3)
-
-
-_VPN_CONN_NAME = "Zero-L2TP"
-_VPN_GATEWAY = "45.86.229.57"
-
-
-def _ensure_ethernet_managed():
-    """التأكد من أن واجهة الإيثرنت مُدارة بواسطة NetworkManager (تعديل netplan إن لزم)."""
-    import glob, time as _time
+    """صفارة تنبيه مرتين عند جاهزية النظام عبر ALSA (aplay)."""
+    import struct, time as _t, tempfile, os
 
     try:
-        result = subprocess.run(
-            ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device", "status"],
-            capture_output=True, text=True, timeout=10,
+        sample_rate = 44100
+        freq = 1000
+        duration = 0.15
+        n_samples = int(sample_rate * duration)
+        import math
+        samples = b""
+        for i in range(n_samples):
+            val = int(16000 * math.sin(2 * math.pi * freq * i / sample_rate))
+            samples += struct.pack("<h", val)
+
+        data_size = len(samples)
+        header = struct.pack(
+            "<4sI4s4sIHHIIHH4sI",
+            b"RIFF", 36 + data_size, b"WAVE",
+            b"fmt ", 16, 1, 1, sample_rate, sample_rate * 2, 2, 16,
+            b"data", data_size,
         )
-        if result.returncode != 0:
-            return
 
-        has_unmanaged_eth = False
-        for line in result.stdout.splitlines():
-            parts = line.strip().split(":")
-            if len(parts) >= 3 and parts[1] == "ethernet" and parts[2] == "unmanaged":
-                has_unmanaged_eth = True
-                break
+        wav_path = tempfile.mktemp(suffix=".wav")
+        with open(wav_path, "wb") as f:
+            f.write(header + samples)
 
-        if not has_unmanaged_eth:
-            return
+        for _ in range(2):
+            subprocess.run(
+                ["aplay", "-q", wav_path],
+                capture_output=True, timeout=3,
+            )
+            _t.sleep(0.25)
 
-        netplan_files = sorted(glob.glob("/etc/netplan/*.yaml"))
-        fixed = False
-        for nf in netplan_files:
-            try:
-                with open(nf, "r") as f:
-                    content = f.read()
-                if "renderer:" not in content or "renderer: networkd" in content:
-                    new_content = content.replace("renderer: networkd", "renderer: NetworkManager")
-                    if "renderer: NetworkManager" not in new_content:
-                        new_content = new_content.replace("version: 2", "version: 2\n    renderer: NetworkManager", 1)
-                    if new_content != content:
-                        with open(nf, "w") as f:
-                            f.write(new_content)
-                        fixed = True
-            except Exception:
-                continue
-
-        if fixed:
-            cloud_disable = "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
-            try:
-                import os
-                if not os.path.exists(cloud_disable):
-                    with open(cloud_disable, "w") as f:
-                        f.write("network: {config: disabled}\n")
-            except Exception:
-                pass
-
-            subprocess.run(["netplan", "apply"], capture_output=True, timeout=30)
-            _time.sleep(8)
-            print("✅ تم تعديل netplan لاستخدام NetworkManager وإعادة التطبيق")
-    except Exception as e:
-        print(f"⚠️ خطأ في إدارة واجهة الإيثرنت: {e}")
+        os.unlink(wav_path)
+    except Exception:
+        pass
 
 
-def _create_or_update_l2tp_connection(device_id: str):
-    """إنشاء أو تحديث اتصال L2TP VPN بمعرّف الجهاز."""
-    import os, stat
+_VPN_LAC_NAME = "Zero-L2TP"
+_VPN_GATEWAY = "45.86.229.57"
+_XL2TPD_CONF = "/etc/xl2tpd/xl2tpd.conf"
+_PPP_OPTIONS = "/etc/ppp/options.l2tpd.client"
+_XL2TPD_CONTROL = "/var/run/xl2tpd/l2tp-control"
 
-    conn_file = f"/etc/NetworkManager/system-connections/{_VPN_CONN_NAME}.nmconnection"
-    content = f"""[connection]
-id={_VPN_CONN_NAME}
-type=vpn
-autoconnect=false
 
-[vpn]
-gateway={_VPN_GATEWAY}
-user={device_id}
-password-flags=0
-service-type=org.freedesktop.NetworkManager.l2tp
-
-[vpn-secrets]
-password={device_id}
-
-[ipv4]
-method=auto
-
-[ipv6]
-method=ignore
+def _write_xl2tpd_config():
+    """كتابة إعدادات xl2tpd."""
+    content = f"""[lac {_VPN_LAC_NAME}]
+lns = {_VPN_GATEWAY}
+ppp debug = yes
+pppoptfile = {_PPP_OPTIONS}
+length bit = yes
 """
     try:
-        needs_write = True
-        if os.path.exists(conn_file):
-            with open(conn_file, "r") as f:
-                existing = f.read()
-            if f"user={device_id}" in existing and f"gateway={_VPN_GATEWAY}" in existing and "ipsec" not in existing.lower():
-                needs_write = False
-
-        if needs_write:
-            subprocess.run(
-                ["nmcli", "connection", "delete", _VPN_CONN_NAME],
-                capture_output=True, timeout=10,
-            )
-            with open(conn_file, "w") as f:
-                f.write(content)
-            os.chmod(conn_file, stat.S_IRUSR | stat.S_IWUSR)
-            subprocess.run(["nmcli", "connection", "reload"], capture_output=True, timeout=10)
-            import time
-            time.sleep(1)
-            print(f"✅ تم إنشاء/تحديث اتصال {_VPN_CONN_NAME}")
-            return True
-        return False
+        current = ""
+        if os.path.exists(_XL2TPD_CONF):
+            with open(_XL2TPD_CONF, "r") as f:
+                current = f.read()
+        if f"lns = {_VPN_GATEWAY}" in current and f"[lac {_VPN_LAC_NAME}]" in current:
+            return
+        with open(_XL2TPD_CONF, "w") as f:
+            f.write(content)
     except Exception as e:
-        print(f"⚠️ خطأ في إنشاء اتصال L2TP: {e}")
+        print(f"⚠️ خطأ في كتابة إعدادات xl2tpd: {e}")
+
+
+def _write_ppp_options(device_id: str):
+    """كتابة إعدادات PPP مع بيانات المعرّف."""
+    content = f"""ipcp-accept-local
+ipcp-accept-remote
+refuse-eap
+require-chap
+noccp
+noauth
+mtu 1280
+mru 1280
+noipdefault
+usepeerdns
+connect-delay 5000
+name {device_id}
+password {device_id}
+"""
+    try:
+        current = ""
+        if os.path.exists(_PPP_OPTIONS):
+            with open(_PPP_OPTIONS, "r") as f:
+                current = f.read()
+        if f"name {device_id}" in current and f"password {device_id}" in current:
+            return
+        with open(_PPP_OPTIONS, "w") as f:
+            f.write(content)
+    except Exception as e:
+        print(f"⚠️ خطأ في كتابة إعدادات PPP: {e}")
+
+
+def _is_vpn_connected() -> bool:
+    """فحص هل واجهة ppp0 موجودة وتعمل."""
+    try:
+        result = subprocess.run(
+            ["ip", "link", "show", "ppp0"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return result.returncode == 0 and "UP" in result.stdout
+    except Exception:
         return False
 
 
 def _try_vpn_connect():
-    """إنشاء وتشغيل اتصال L2TP VPN تلقائياً."""
+    """إنشاء وتشغيل L2TP VPN عبر xl2tpd مباشرة (بدون الحاجة لـ NetworkManager)."""
+    import time as _t
     from backend.services.system_stats import get_device_id
+
     try:
-        result = subprocess.run(
-            ["nmcli", "--version"],
-            capture_output=True, timeout=5,
-        )
-        if result.returncode != 0:
-            return False, "nmcli غير متوفر"
+        res = subprocess.run(["which", "xl2tpd"], capture_output=True, timeout=5)
+        if res.returncode != 0:
+            return False, "xl2tpd غير مثبّت — يُرجى تثبيته: apt install xl2tpd"
 
         device_id = get_device_id()
         if not device_id or device_id == "unknown":
             return False, "لم يتم التعرف على معرّف الجهاز"
 
-        _ensure_ethernet_managed()
+        if _is_vpn_connected():
+            return True, f"VPN ({_VPN_LAC_NAME}) متصل مسبقاً — المعرّف: {device_id}"
 
-        _create_or_update_l2tp_connection(device_id)
+        _write_xl2tpd_config()
+        _write_ppp_options(device_id)
 
-        active = subprocess.run(
-            ["nmcli", "-t", "-f", "NAME", "connection", "show", "--active"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if _VPN_CONN_NAME in (active.stdout or ""):
-            return True, f"VPN ({_VPN_CONN_NAME}) متصل مسبقاً"
+        subprocess.run(["systemctl", "stop", "xl2tpd"], capture_output=True, timeout=10)
+        _t.sleep(1)
+        subprocess.run(["systemctl", "start", "xl2tpd"], capture_output=True, timeout=10)
+        _t.sleep(2)
 
-        up = subprocess.run(
-            ["nmcli", "connection", "up", _VPN_CONN_NAME],
-            capture_output=True, text=True, timeout=30,
-        )
-        if up.returncode == 0:
-            return True, f"تم تشغيل VPN ({_VPN_CONN_NAME}) بنجاح — المعرّف: {device_id}"
-        err = (up.stderr or up.stdout or "").strip()
-        return False, f"فشل تشغيل VPN: {err}"
-    except subprocess.TimeoutExpired:
-        return False, "انتهت مهلة الاتصال بـ VPN"
+        os.makedirs("/var/run/xl2tpd", exist_ok=True)
+        if not os.path.exists(_XL2TPD_CONTROL):
+            subprocess.run(["systemctl", "restart", "xl2tpd"], capture_output=True, timeout=10)
+            _t.sleep(2)
+
+        with open(_XL2TPD_CONTROL, "w") as ctl:
+            ctl.write(f"c {_VPN_LAC_NAME}\n")
+
+        for attempt in range(10):
+            _t.sleep(2)
+            if _is_vpn_connected():
+                return True, f"تم تشغيل VPN ({_VPN_LAC_NAME}) بنجاح — المعرّف: {device_id}"
+
+        return False, "انتهت مهلة انتظار اتصال VPN (ppp0 لم يظهر)"
+
+    except Exception as e:
+        return False, f"خطأ في تشغيل VPN: {e}"
     except Exception as e:
         return False, f"خطأ في تشغيل VPN: {e}"
 
