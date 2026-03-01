@@ -24,46 +24,14 @@ def get_or_create_streaming_subscription(db: Session) -> models.StreamingSubscri
     return subscription
 
 
-def get_or_create_device_uuid() -> str:
-    """الحصول على معرّف الجهاز من machine-id أو إنشاء واحد مستمر."""
-    import uuid as _uuid
-    from ..paths import PROJECT_ROOT
-
-    try:
-        with open("/etc/machine-id", "r") as f:
-            machine_id = f.read().strip()
-            if machine_id:
-                return machine_id
-    except Exception:
-        pass
-
-    uuid_path = Path(PROJECT_ROOT) / ".device_uuid"
-    try:
-        if uuid_path.exists():
-            stored = uuid_path.read_text().strip()
-            if stored:
-                return stored
-    except Exception:
-        pass
-
-    new_uuid = _uuid.uuid4().hex
-    try:
-        uuid_path.write_text(new_uuid)
-    except Exception:
-        pass
-    return new_uuid
-
-
 def generate_key_from_server(device_uuid: str) -> Optional[str]:
     """إرسال معرّف الجهاز إلى الخادم للحصول على مفتاح بث جديد."""
-    generate_url = "https://to.zerolag.live/api/channels/generate_key/"
+    generate_url = "https://to.zerolag.live/api/channels/generate/?user="
     try:
-        print(f"🔑 طلب مفتاح جديد من: {generate_url}")
-        response = requests.post(
-            generate_url,
-            json={"uuid": device_uuid},
+        print(f"🔑 طلب مفتاح جديد من: {generate_url + device_uuid}")
+        response = requests.get(
+            generate_url + device_uuid,
             timeout=30,
-            headers={"Content-Type": "application/json"},
         )
         if response.ok:
             data = response.json()
@@ -96,9 +64,10 @@ def save_key_to_file(key: str) -> bool:
 
 
 def refresh_key_on_startup() -> Optional[str]:
-    """توليد مفتاح جديد عند بدء التشغيل عبر إرسال UUID الجهاز إلى الخادم."""
+    """توليد مفتاح جديد عند بدء التشغيل عبر إرسال UUID البوردة إلى الخادم."""
+    from .system_stats import get_device_id
     print("🔄 بدء عملية توليد مفتاح جديد...")
-    device_uuid = get_or_create_device_uuid()
+    device_uuid = get_device_id()
     print(f"📱 معرّف الجهاز (UUID): {device_uuid}")
 
     new_key = generate_key_from_server(device_uuid)

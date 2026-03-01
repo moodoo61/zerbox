@@ -18,31 +18,57 @@ from pathlib import Path
 auto_activation_result = {"status": None, "message": None}
 
 def _system_beep():
-    """إصدار صفارة تنبيه عبر عدة طرق لضمان السماع على مختلف الأنظمة."""
-    methods = [
-        lambda: subprocess.run(
-            ["beep", "-f", "1000", "-l", "300"],
-            capture_output=True, timeout=3,
-        ),
-        lambda: subprocess.run(
-            ["speaker-test", "-t", "sine", "-f", "1000", "-l", "1"],
-            capture_output=True, timeout=3,
-        ),
-        lambda: subprocess.run(
-            ["aplay", "/usr/share/sounds/sound-icons/beginning-of-line"],
-            capture_output=True, timeout=3,
-        ),
-        lambda: (
-            open("/dev/console", "w").write("\a"),
-        ),
-        lambda: subprocess.run(
-            ["bash", "-c",
-             "( speaker-test -t sine -f 1000 >/dev/null 2>&1 & PID=$!; sleep 0.3; kill $PID 2>/dev/null ) &"],
-            capture_output=True, timeout=3,
-        ),
-        lambda: print("\a", end="", flush=True),
-    ]
-    for method in methods:
+    """إصدار نغمة تنبيه مميزة (3 نغمات صاعدة) عند جاهزية النظام."""
+    import time as _t
+
+    def _try_beep_cmd():
+        subprocess.run(
+            ["beep", "-f", "800", "-l", "150",
+             "-n", "-f", "1000", "-l", "150",
+             "-n", "-f", "1200", "-l", "250"],
+            capture_output=True, timeout=5,
+        )
+
+    def _try_speaker_test():
+        for freq, dur in [(800, 0.15), (1000, 0.15), (1200, 0.25)]:
+            proc = subprocess.Popen(
+                ["speaker-test", "-t", "sine", "-f", str(int(freq))],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            _t.sleep(dur)
+            proc.terminate()
+            proc.wait(timeout=2)
+            _t.sleep(0.05)
+
+    def _try_python_wave():
+        import wave, struct, math, tempfile
+        sample_rate = 44100
+        tones = [(800, 0.15), (1000, 0.15), (1200, 0.25)]
+        frames = b""
+        for freq, dur in tones:
+            n_samples = int(sample_rate * dur)
+            for i in range(n_samples):
+                val = int(16000 * math.sin(2 * math.pi * freq * i / sample_rate))
+                frames += struct.pack("<h", val)
+            frames += b"\x00\x00" * int(sample_rate * 0.05)
+        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        try:
+            with wave.open(tmp.name, "w") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sample_rate)
+                wf.writeframes(frames)
+            subprocess.run(["aplay", tmp.name], capture_output=True, timeout=5)
+        finally:
+            import os
+            os.unlink(tmp.name)
+
+    def _try_bell():
+        for _ in range(3):
+            print("\a", end="", flush=True)
+            _t.sleep(0.2)
+
+    for method in [_try_beep_cmd, _try_speaker_test, _try_python_wave, _try_bell]:
         try:
             method()
             return

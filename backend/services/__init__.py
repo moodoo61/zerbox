@@ -4,8 +4,8 @@
     services.get_system_stats()
 """
 
-# إحصائيات النظام
-from .system_stats import get_system_stats
+# إحصائيات النظام ومعرّف الجهاز
+from .system_stats import get_system_stats, get_device_id, get_machine_identity
 
 # عمليات CRUD للخدمات المخصصة
 from .crud import (
@@ -40,7 +40,6 @@ from .mistserver import (
 # البث والقنوات
 from .streaming import (
     get_or_create_streaming_subscription,
-    get_or_create_device_uuid,
     generate_key_from_server,
     save_key_to_file,
     refresh_key_on_startup,

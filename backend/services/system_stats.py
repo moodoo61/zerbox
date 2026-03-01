@@ -36,13 +36,32 @@ def get_machine_identity() -> dict:
     base = "/sys/class/dmi/id"
     serial = _read_sys_file(os.path.join(base, "product_serial"))
     uuid_full = _read_sys_file(os.path.join(base, "product_uuid"))
-    # بعض الأجهزة الافتراضية تعيد "None" أو قيم فارغة
-    if serial.upper() in ("NONE", "NA", "DEFAULT STRING", "TO BE FILLED BY O.E.M."):
+    _invalid = ("NONE", "NA", "DEFAULT STRING", "TO BE FILLED BY O.E.M.")
+    if serial.upper() in _invalid:
         serial = "—"
-    if uuid_full.upper() in ("NONE", "NA", "DEFAULT STRING", "TO BE FILLED BY O.E.M."):
+    if uuid_full.upper() in _invalid:
         uuid_full = "—"
     machine_uuid = _shorten_uuid(uuid_full) if uuid_full != "—" else "—"
     return {"serial_number": serial, "machine_uuid": machine_uuid}
+
+
+def get_device_id() -> str:
+    """
+    الدالة الموحّدة لمعرّف الجهاز — تُرجع الجزء الأخير من UUID البوردة (12 حرف).
+    يُستخدم في: توليد المفتاح، اتصال L2TP، عرض لوحة التحكم.
+    """
+    identity = get_machine_identity()
+    device_id = identity.get("machine_uuid", "—")
+    if device_id and device_id != "—":
+        return device_id
+    try:
+        with open("/etc/machine-id", "r") as f:
+            mid = f.read().strip()
+            if mid:
+                return mid[-12:] if len(mid) >= 12 else mid
+    except Exception:
+        pass
+    return "unknown"
 
 
 def get_system_stats():
