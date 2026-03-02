@@ -21,42 +21,14 @@ auto_activation_result = {"status": None, "message": None}
 
 
 def _system_beep():
-    """صفارة تنبيه مرتين عند جاهزية النظام عبر ALSA (aplay)."""
-    import struct, time as _t, tempfile, os
-
-    try:
-        sample_rate = 44100
-        freq = 1000
-        duration = 0.15
-        n_samples = int(sample_rate * duration)
-        import math
-        samples = b""
-        for i in range(n_samples):
-            val = int(16000 * math.sin(2 * math.pi * freq * i / sample_rate))
-            samples += struct.pack("<h", val)
-
-        data_size = len(samples)
-        header = struct.pack(
-            "<4sI4s4sIHHIIHH4sI",
-            b"RIFF", 36 + data_size, b"WAVE",
-            b"fmt ", 16, 1, 1, sample_rate, sample_rate * 2, 2, 16,
-            b"data", data_size,
-        )
-
-        wav_path = tempfile.mktemp(suffix=".wav")
-        with open(wav_path, "wb") as f:
-            f.write(header + samples)
-
-        for _ in range(2):
-            subprocess.run(
-                ["aplay", "-q", wav_path],
-                capture_output=True, timeout=3,
-            )
-            _t.sleep(0.25)
-
-        os.unlink(wav_path)
-    except Exception:
-        pass
+    """صفارة تنبيه بسيطة (beep) تتكرر مرتين عند جاهزية النظام."""
+    import time as _t
+    for _ in range(2):
+        try:
+            subprocess.run(["beep", "-f", "1000", "-l", "200"], capture_output=True, timeout=3)
+        except Exception:
+            pass
+        _t.sleep(0.3)
 
 
 _VPN_LAC_NAME = "Zero-L2TP"
