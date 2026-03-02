@@ -19,7 +19,21 @@ import {
 } from '@mui/icons-material';
 import ServiceStatsManager from './ServiceStatsManager';
 
-const ServiceManager = ({ auth }) => {
+function getUserPermissions(userInfo) {
+    if (!userInfo || userInfo.role === 'owner') return null;
+    try {
+        return typeof userInfo.permissions === 'string' ? JSON.parse(userInfo.permissions) : userInfo.permissions || {};
+    } catch { return {}; }
+}
+
+function isSubSectionVisible(perms, key) {
+    if (!perms) return true;
+    const p = perms[key];
+    if (!p) return true;
+    return p.visible !== false;
+}
+
+const ServiceManager = ({ auth, userInfo }) => {
     // Regular services state
     const [services, setServices] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -397,18 +411,25 @@ const ServiceManager = ({ auth }) => {
             </Typography>
 
             <Paper sx={{ width: '100%' }}>
-                <Tabs 
-                    value={currentTab} 
+                {(() => {
+                    const perms = getUserPermissions(userInfo);
+                    const allTabs = [
+                        { key: 'الخدمات > الخدمات الافتراضية', label: 'الخدمات الافتراضية', id: 'default' },
+                        { key: 'الخدمات > الخدمات المخصصة', label: 'الخدمات المخصصة', id: 'custom' },
+                        { key: 'الخدمات > إحصائيات الخدمات', label: 'إحصائيات الخدمات', id: 'stats' },
+                    ];
+                    const visibleTabs = allTabs.filter(t => isSubSectionVisible(perms, t.key));
+                    const activeTabId = visibleTabs[currentTab]?.id || visibleTabs[0]?.id;
+                    return (<>
+                <Tabs
+                    value={Math.min(currentTab, visibleTabs.length - 1)}
                     onChange={(e, newValue) => setCurrentTab(newValue)}
                     sx={{ borderBottom: 1, borderColor: 'divider' }}
                 >
-                    <Tab label="الخدمات الافتراضية" />
-                    <Tab label="الخدمات المخصصة" />
-                    <Tab label="إحصائيات الخدمات" />
+                    {visibleTabs.map(t => <Tab key={t.id} label={t.label} />)}
                 </Tabs>
 
-                {/* Default Services Tab */}
-                {currentTab === 0 && (
+                {activeTabId === 'default' && (
                     <Box sx={{ p: 3 }}>
                         {defaultServiceError && <Alert severity="error" sx={{ mb: 2 }}>{defaultServiceError}</Alert>}
                         {defaultServiceSuccess && <Alert severity="success" sx={{ mb: 2 }}>{defaultServiceSuccess}</Alert>}
@@ -543,15 +564,13 @@ const ServiceManager = ({ auth }) => {
                     </Box>
                 )}
 
-                {/* Service Statistics Tab */}
-                {currentTab === 2 && (
+                {activeTabId === 'stats' && (
                     <Box sx={{ p: 3 }}>
                         <ServiceStatsManager auth={auth} />
                     </Box>
                 )}
 
-                {/* Custom Services Tab */}
-                {currentTab === 1 && (
+                {activeTabId === 'custom' && (
                     <Box sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6">
@@ -595,6 +614,7 @@ const ServiceManager = ({ auth }) => {
                         </TableContainer>
                     </Box>
                 )}
+                </>); })()}
             </Paper>
 
             <Modal 

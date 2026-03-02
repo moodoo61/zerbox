@@ -6,7 +6,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 const PROJECT_VERSION = '1.0.1';
 
-const Dashboard = ({ auth }) => {
+const Dashboard = ({ auth, userInfo }) => {
     const theme = useTheme();
     const [vpnConnected, setVpnConnected] = useState(false);
 
@@ -94,7 +94,7 @@ const Dashboard = ({ auth }) => {
             </Paper>
 
             {/* محتوى نظرة عامة */}
-            <SystemMonitor auth={auth} />
+            <SystemMonitor auth={auth} userInfo={userInfo} />
         </Box>
     );
 };

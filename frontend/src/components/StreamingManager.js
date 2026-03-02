@@ -19,7 +19,14 @@ import {
 } from '@mui/icons-material';
 import ViewerPageManager from './ViewerPageManager';
 
-const StreamingManager = ({ auth }) => {
+function _getPerms(userInfo) {
+    if (!userInfo || userInfo.role === 'owner') return null;
+    try { return typeof userInfo.permissions === 'string' ? JSON.parse(userInfo.permissions) : userInfo.permissions || {}; }
+    catch { return {}; }
+}
+function _subVisible(perms, key) { if (!perms) return true; const p = perms[key]; return !p || p.visible !== false; }
+
+const StreamingManager = ({ auth, userInfo }) => {
     const [streamingTab, setStreamingTab] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -502,17 +509,24 @@ const StreamingManager = ({ auth }) => {
             </Box>
 
             <Paper sx={{ width: '100%' }}>
+                {(() => {
+                    const perms = _getPerms(userInfo);
+                    const allTabs = [
+                        { key: 'البث المباشر > إدارة القنوات', label: 'إدارة القنوات', id: 'channels' },
+                        { key: 'البث المباشر > صفحة المشاهدة', label: 'صفحة المشاهدة', id: 'viewer' },
+                    ];
+                    const visibleTabs = allTabs.filter(t => _subVisible(perms, t.key));
+                    const activeTabId = visibleTabs[streamingTab]?.id || visibleTabs[0]?.id;
+                    return (<>
                 <Tabs
-                    value={streamingTab}
+                    value={Math.min(streamingTab, visibleTabs.length - 1)}
                     onChange={(e, newValue) => setStreamingTab(newValue)}
                     sx={{ borderBottom: 1, borderColor: 'divider' }}
                 >
-                    <Tab label="إدارة القنوات" />
-                    <Tab label="صفحة المشاهدة" />
+                    {visibleTabs.map(t => <Tab key={t.id} label={t.label} />)}
                 </Tabs>
 
-                {/* تاب إدارة القنوات */}
-                {streamingTab === 0 && (
+                {activeTabId === 'channels' && (
                     <Box sx={{ p: 3 }}>
             {/* بطاقة التفعيل المبسطة */}
             <Card sx={{ mb: 3 }}>
@@ -818,12 +832,12 @@ const StreamingManager = ({ auth }) => {
                     </Box>
                 )}
 
-                {/* تاب صفحة المشاهدة */}
-                {streamingTab === 1 && (
+                {activeTabId === 'viewer' && (
                     <Box sx={{ p: 3 }}>
                         <ViewerPageManager auth={auth} />
                     </Box>
                 )}
+                </>); })()}
             </Paper>
         </Box>
     );

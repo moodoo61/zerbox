@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Paper, Alert, Skeleton, Button, Snackbar, Chip, IconButton, Collapse } from '@mui/material';
+import {
+    Box, Typography, Grid, Paper, Alert, Skeleton, Button, Snackbar, Chip,
+    IconButton, Collapse, Dialog, DialogTitle, DialogContent, DialogActions,
+    TextField, CircularProgress, Tooltip
+} from '@mui/material';
 import Gauge from './Gauge';
 import ComputerIcon from '@mui/icons-material/Computer';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -15,6 +19,7 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import EditIcon from '@mui/icons-material/Edit';
 
 function formatUptime(seconds) {
     if (isNaN(seconds) || seconds < 0) {
@@ -41,7 +46,7 @@ const LOG_LEVEL_CONFIG = {
     error:   { color: '#c62828', bg: '#ffebee', label: 'خطأ' },
 };
 
-const SystemMonitor = ({ auth }) => {
+const SystemMonitor = ({ auth, userInfo }) => {
     const [stats, setStats] = useState(null);
     const [error, setError] = useState('');
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -49,6 +54,56 @@ const SystemMonitor = ({ auth }) => {
     const [currentTime, setCurrentTime] = useState(() => new Date());
     const [logs, setLogs] = useState([]);
     const [logsExpanded, setLogsExpanded] = useState(true);
+
+    const [showIdDialog, setShowIdDialog] = useState(false);
+    const [idLoading, setIdLoading] = useState(false);
+    const [idSaving, setIdSaving] = useState(false);
+    const [idError, setIdError] = useState(null);
+    const [customSerial, setCustomSerial] = useState('');
+    const [customUuid, setCustomUuid] = useState('');
+    const [systemSerial, setSystemSerial] = useState('');
+    const [systemUuid, setSystemUuid] = useState('');
+
+    const isOwner = userInfo?.role === 'owner';
+
+    function openIdDialog() {
+        setShowIdDialog(true);
+        setIdLoading(true);
+        setIdError(null);
+        fetch('/api/device-identity/', { headers: { 'Authorization': `Basic ${auth}` } })
+            .then(res => res.ok ? res.json() : Promise.reject(new Error('فشل تحميل البيانات')))
+            .then(data => {
+                setCustomSerial(data.custom_serial || '');
+                setCustomUuid(data.custom_uuid || '');
+                setSystemSerial(data.system_serial || '—');
+                setSystemUuid(data.system_uuid || '—');
+                setIdLoading(false);
+            })
+            .catch(err => { setIdError(err.message); setIdLoading(false); });
+    }
+
+    async function saveDeviceIdentity() {
+        setIdSaving(true);
+        setIdError(null);
+        try {
+            const res = await fetch('/api/device-identity/', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+                body: JSON.stringify({
+                    custom_serial: customSerial.trim(),
+                    custom_uuid: customUuid.trim(),
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || 'فشل الحفظ');
+            setShowIdDialog(false);
+            setSnackbar({ open: true, message: 'تم حفظ معرّف الجهاز بنجاح', severity: 'success' });
+        } catch (err) {
+            setIdError(err.message);
+        } finally {
+            setIdSaving(false);
+        }
+    }
 
     useEffect(() => {
         const t = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -158,6 +213,13 @@ const SystemMonitor = ({ auth }) => {
                             <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold' }}>
                                 ID
                             </Typography>
+                            {isOwner && (
+                                <Tooltip title="تعديل المعرّف">
+                                    <IconButton size="small" onClick={openIdDialog} sx={{ p: 0.3 }}>
+                                        <EditIcon sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
                         </Box>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -522,8 +584,64 @@ const SystemMonitor = ({ auth }) => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* حوار تعديل معرّف الجهاز */}
+            <Dialog open={showIdDialog} onClose={() => setShowIdDialog(false)} maxWidth="xs" fullWidth
+                PaperProps={{ sx: { direction: 'rtl', borderRadius: 3 } }}>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FingerprintIcon color="primary" />
+                    تعديل معرّف الجهاز
+                </DialogTitle>
+                <DialogContent>
+                    {idLoading && <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 3 }} />}
+                    {idError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{idError}</Alert>}
+                    {!idLoading && (
+                        <Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                أدخل قيم مخصصة للرقم التسلسلي و UUID. اتركها فارغة لاستخدام قيم النظام.
+                            </Typography>
+                            <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                    قيم النظام الأصلية:
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                    SN: {systemSerial}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                    UUID: {systemUuid}
+                                </Typography>
+                            </Box>
+                            <TextField
+                                label="الرقم التسلسلي (SN) المخصص"
+                                fullWidth
+                                margin="dense"
+                                value={customSerial}
+                                onChange={(e) => setCustomSerial(e.target.value)}
+                                placeholder="اتركه فارغاً لاستخدام قيمة النظام"
+                                sx={{ mb: 1 }}
+                                InputProps={{ sx: { fontFamily: 'monospace' } }}
+                            />
+                            <TextField
+                                label="UUID المخصص"
+                                fullWidth
+                                margin="dense"
+                                value={customUuid}
+                                onChange={(e) => setCustomUuid(e.target.value)}
+                                placeholder="اتركه فارغاً لاستخدام قيمة النظام"
+                                InputProps={{ sx: { fontFamily: 'monospace' } }}
+                            />
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setShowIdDialog(false)}>إلغاء</Button>
+                    <Button variant="contained" onClick={saveDeviceIdentity} disabled={idSaving || idLoading}>
+                        {idSaving ? <CircularProgress size={20} /> : 'حفظ'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
 
-export default SystemMonitor; 
+export default SystemMonitor;

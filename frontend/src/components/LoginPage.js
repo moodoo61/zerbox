@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Login as LoginIcon } from '@mui/icons-material';
 
-const LoginPage = ({ setAuth }) => {
+const LoginPage = ({ setAuth, setUserInfo }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -53,7 +53,16 @@ const LoginPage = ({ setAuth }) => {
             } catch (_) {}
 
             if (response.ok && responseData.token) {
+                const info = {
+                    user_id: responseData.user_id,
+                    username: responseData.username,
+                    role: responseData.role,
+                    is_default: responseData.is_default,
+                    permissions: responseData.permissions || '{}',
+                };
                 setAuth(responseData.token);
+                if (setUserInfo) setUserInfo(info);
+                localStorage.setItem('userInfo', JSON.stringify(info));
                 navigate('/admin');
                 return;
             }

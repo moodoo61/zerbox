@@ -1,6 +1,6 @@
 import os
 from sqlmodel import create_engine, Session, select
-from .models import SiteSettings, ViewerPageSettings, AdminUser
+from .models import SiteSettings, ViewerPageSettings, AdminUser, DeviceIdentity
 from .paths import PROJECT_ROOT
 
 # مسار قاعدة البيانات:
@@ -15,7 +15,7 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 
 def create_db_and_tables():
-    from .models import SQLModel, SiteSettings, StreamingSubscription, ViewerPageSettings, AdminUser, ServiceVisit, DeliveryRequest, Notification, PushSubscription
+    from .models import SQLModel, SiteSettings, StreamingSubscription, ViewerPageSettings, AdminUser, ServiceVisit, DeliveryRequest, Notification, PushSubscription, DeviceIdentity
     from passlib.context import CryptContext
     pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -121,29 +121,38 @@ def create_db_and_tables():
     except Exception:
         pass
 
-    # ترحيل: إعادة تعيين كلمة مرور المدير إلى القيمة الافتراضية (admin)
-    # يتم لمرة واحدة فقط عبر ملف علم .admin_reset_v2
-    import os as _os
-    _reset_flag = _os.path.join(_os.path.dirname(_db_path), ".admin_reset_v2")
-    _need_reset = not _os.path.exists(_reset_flag)
+    # ترحيل: أعمدة نظام الصلاحيات المتعدد
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            r = conn.execute(text("PRAGMA table_info(adminuser)"))
+            cols = [row[1] for row in r.fetchall()]
+            if "role" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN role VARCHAR DEFAULT 'manager'"))
+                conn.commit()
+            if "parent_id" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN parent_id INTEGER"))
+                conn.commit()
+            if "permissions" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN permissions VARCHAR DEFAULT '{}'"))
+                conn.commit()
+            if "is_default" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN is_default BOOLEAN DEFAULT 0"))
+                conn.commit()
+            if "created_at" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN created_at VARCHAR"))
+                conn.commit()
+            if "is_active" not in cols:
+                conn.execute(text("ALTER TABLE adminuser ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+                conn.commit()
+    except Exception:
+        pass
 
     # Ensure default settings exist
     with Session(engine) as session:
         get_or_create_settings(session)
         get_or_create_viewer_page_settings(session)
-        admin = get_or_create_admin_user(session, pwd_ctx)
-
-        if _need_reset and admin:
-            admin.username = "admin"
-            admin.password_hash = pwd_ctx.hash("admin")
-            session.add(admin)
-            session.commit()
-            try:
-                with open(_reset_flag, "w") as _f:
-                    _f.write("done")
-            except Exception:
-                pass
-            print("🔄 تم إعادة تعيين بيانات الدخول إلى (admin / admin)")
+        seed_default_users(session, pwd_ctx)
 
 
 def get_session():
@@ -201,18 +210,119 @@ def get_or_create_viewer_page_settings(session: Session) -> ViewerPageSettings:
 
 
 def get_or_create_admin_user(session: Session, pwd_ctx=None) -> AdminUser:
-    """الحصول على حساب المدير أو إنشاؤه بقيم افتراضية (admin / admin)."""
+    """الحصول على أول حساب مدير (توافق عكسي). يفضّل المالك ثم أي مستخدم."""
     from passlib.context import CryptContext
     if pwd_ctx is None:
         pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    admin = session.get(AdminUser, 1)
+    admin = session.exec(select(AdminUser).where(AdminUser.role == "owner")).first()
     if not admin:
+        admin = session.exec(select(AdminUser)).first()
+    if not admin:
+        import json
+        from datetime import datetime
+        all_perms = _build_full_permissions("write")
         admin = AdminUser(
-            id=1,
-            username="admin",
-            password_hash=pwd_ctx.hash("admin"),
+            username="moha",
+            password_hash=pwd_ctx.hash("Moha7000"),
+            role="owner",
+            parent_id=None,
+            permissions=json.dumps(all_perms, ensure_ascii=False),
+            is_default=False,
+            created_at=datetime.now().isoformat(),
         )
         session.add(admin)
         session.commit()
         session.refresh(admin)
     return admin
+
+
+def _build_full_permissions(permission_level: str = "write") -> dict:
+    """بناء صلاحيات كاملة لكل أقسام لوحة التحكم."""
+    sections = [
+        "نظرة عامة", "الخدمات", "البث المباشر",
+        "التطبيقات", "الإشعارات", "طلبات التوصيل", "الضبط"
+    ]
+    return {s: {"visible": True, "permission": permission_level} for s in sections}
+
+
+def seed_default_users(session: Session, pwd_ctx=None):
+    """إنشاء المالك الرئيسي والمدير الافتراضي إن لم يوجدا."""
+    from passlib.context import CryptContext
+    import json
+    from datetime import datetime
+    if pwd_ctx is None:
+        pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    all_write = json.dumps(_build_full_permissions("write"), ensure_ascii=False)
+
+    owner = session.exec(select(AdminUser).where(AdminUser.role == "owner")).first()
+    if not owner:
+        existing = session.exec(select(AdminUser)).first()
+        if existing and existing.username == "moha":
+            existing.role = "owner"
+            existing.permissions = all_write
+            existing.is_default = False
+            session.add(existing)
+            session.commit()
+        else:
+            owner = AdminUser(
+                username="moha",
+                password_hash=pwd_ctx.hash("Moha7000"),
+                role="owner",
+                parent_id=None,
+                permissions=all_write,
+                is_default=False,
+                created_at=datetime.now().isoformat(),
+            )
+            session.add(owner)
+            session.commit()
+            session.refresh(owner)
+        print("✅ تم إنشاء حساب المالك (moha)")
+
+    owner = session.exec(select(AdminUser).where(AdminUser.role == "owner")).first()
+
+    default_mgr = session.exec(
+        select(AdminUser).where(AdminUser.is_default == True, AdminUser.role == "manager")
+    ).first()
+    if not default_mgr:
+        existing_admin = session.exec(
+            select(AdminUser).where(AdminUser.username == "admin")
+        ).first()
+        if existing_admin:
+            existing_admin.role = "manager"
+            existing_admin.parent_id = owner.id if owner else None
+            existing_admin.permissions = all_write
+            existing_admin.is_default = True
+            if not existing_admin.created_at:
+                existing_admin.created_at = datetime.now().isoformat()
+            session.add(existing_admin)
+            session.commit()
+        else:
+            default_mgr = AdminUser(
+                username="admin",
+                password_hash=pwd_ctx.hash("admin"),
+                role="manager",
+                parent_id=owner.id if owner else None,
+                permissions=all_write,
+                is_default=True,
+                created_at=datetime.now().isoformat(),
+            )
+            session.add(default_mgr)
+            session.commit()
+        print("✅ تم إنشاء حساب المدير الافتراضي (admin)")
+
+
+def get_user_by_username(session: Session, username: str) -> AdminUser:
+    """البحث عن مستخدم باسم المستخدم."""
+    return session.exec(select(AdminUser).where(AdminUser.username == username)).first()
+
+
+def get_or_create_device_identity(session: Session) -> DeviceIdentity:
+    """الحصول على سجل معرّف الجهاز أو إنشاؤه."""
+    identity = session.get(DeviceIdentity, 1)
+    if not identity:
+        identity = DeviceIdentity(id=1)
+        session.add(identity)
+        session.commit()
+        session.refresh(identity)
+    return identity

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlmodel import Field, SQLModel
 
 
@@ -30,6 +30,29 @@ class ServiceUpdate(SQLModel):
     image_url: Optional[str] = None
     click_count: Optional[int] = None
     is_hidden: Optional[bool] = None
+
+
+# ---- Device Identity (معرّف الجهاز المخصص) ----
+
+class DeviceIdentity(SQLModel, table=True):
+    """تخزين معرّف مخصص للجهاز (SN و UUID) بدلاً من قيم النظام."""
+    id: int = Field(default=1, primary_key=True)
+    custom_serial: Optional[str] = None
+    custom_uuid: Optional[str] = None
+
+
+class DeviceIdentityRead(SQLModel):
+    custom_serial: Optional[str] = None
+    custom_uuid: Optional[str] = None
+    system_serial: Optional[str] = None
+    system_uuid: Optional[str] = None
+    active_serial: Optional[str] = None
+    active_uuid: Optional[str] = None
+
+
+class DeviceIdentityUpdate(SQLModel):
+    custom_serial: Optional[str] = None
+    custom_uuid: Optional[str] = None
 
 
 # ---- New Site Settings Models ----
@@ -215,12 +238,19 @@ class ViewerPageSettingsUpdate(SQLModel):
 
 
 # ---- Admin User (لوحة التحكم) ----
+# الأدوار: owner (مالك) – manager (مدير) – sub_manager (مدير فرعي)
 
 class AdminUser(SQLModel, table=True):
-    """حساب مدير واحد لتسجيل الدخول إلى لوحة التحكم."""
-    id: int = Field(default=1, primary_key=True)
+    """حساب مستخدم لوحة التحكم مع دور وصلاحيات."""
+    id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True)
     password_hash: str = ""
+    role: str = Field(default="manager", index=True)  # owner | manager | sub_manager
+    parent_id: Optional[int] = Field(default=None, index=True)
+    permissions: str = Field(default="{}")
+    is_default: bool = Field(default=False)
+    is_active: bool = Field(default=True)
+    created_at: Optional[str] = Field(default=None)
 
 
 class AdminCredentialsRead(SQLModel):
@@ -228,20 +258,54 @@ class AdminCredentialsRead(SQLModel):
 
 
 class AdminCredentialsUpdate(SQLModel):
-    current_password: Optional[str] = None  # اختياري
+    current_password: Optional[str] = None
     new_username: Optional[str] = None
     new_password: Optional[str] = None
 
 
+class AdminUserRead(SQLModel):
+    """بيانات مستخدم للقراءة (بدون كلمة المرور)."""
+    id: int
+    username: str
+    role: str
+    parent_id: Optional[int] = None
+    permissions: str = "{}"
+    is_default: bool = False
+    is_active: bool = True
+    created_at: Optional[str] = None
+
+
+class AdminUserCreate(SQLModel):
+    """إنشاء مستخدم جديد."""
+    username: str
+    password: str
+    role: str  # manager | sub_manager
+    permissions: str = "{}"
+
+
+class AdminUserUpdate(SQLModel):
+    """تحديث مستخدم."""
+    username: Optional[str] = None
+    password: Optional[str] = None
+    permissions: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class LoginRequest(SQLModel):
-    """طلب تسجيل الدخول (بدون Basic Auth لتفادي نافذة المتصفح)."""
+    """طلب تسجيل الدخول."""
     username: str
     password: str
 
 
 class LoginResponse(SQLModel):
     """استجابة تسجيل الدخول الناجح."""
-    token: str  # Base64(username:password) للاستخدام في رؤوس الطلبات
+    token: str
+    user_id: int
+    username: str
+    role: str
+    is_default: bool = False
+    is_active: bool = True
+    permissions: str = "{}"
 
 
 # ---- Default Services Models ----

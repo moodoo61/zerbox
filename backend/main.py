@@ -7,8 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlmodel import Session, select, SQLModel
 from backend import models, services
-from backend.database import create_db_and_tables, get_session, get_or_create_settings, get_or_create_admin_user
-from backend.auth import check_auth
+from backend.database import create_db_and_tables, get_session, get_or_create_settings, get_or_create_admin_user, get_user_by_username, _build_full_permissions
+from backend.auth import check_auth, pwd_ctx
 import os
 import shutil
 import subprocess
@@ -283,27 +283,33 @@ async def read_root():
 
 @app.post("/api/login", response_model=models.LoginResponse, tags=["Auth"])
 def login(body: models.LoginRequest, db: Session = Depends(get_session)):
-    """
-    تسجيل الدخول باسم المستخدم وكلمة المرور.
-    يعيد token (Base64) للاستخدام في رأس Authorization.
-    عند الفشل يعيد 401 بدون WWW-Authenticate حتى لا تظهر نافذة المتصفح.
-    """
-    from passlib.context import CryptContext
-    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    admin = get_or_create_admin_user(db)
-    if not admin or not admin.password_hash:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="حساب المدير غير مُعد",
-        )
-    if body.username != admin.username or not pwd_ctx.verify(body.password, admin.password_hash):
+    """تسجيل الدخول – يدعم عدة مستخدمين بأدوار مختلفة."""
+    user = get_user_by_username(db, body.username)
+    if not user or not user.password_hash:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="اسم المستخدم أو كلمة المرور غير صحيحة",
-            # عدم إرسال WWW-Authenticate لتفادي نافذة تسجيل الدخول في المتصفح
         )
-    token = base64.b64encode(f"{admin.username}:{body.password}".encode()).decode()
-    return models.LoginResponse(token=token)
+    if not pwd_ctx.verify(body.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="اسم المستخدم أو كلمة المرور غير صحيحة",
+        )
+    if not user.is_active and user.role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="الحساب معطّل. تواصل مع المسؤول.",
+        )
+    token = base64.b64encode(f"{user.username}:{body.password}".encode()).decode()
+    return models.LoginResponse(
+        token=token,
+        user_id=user.id,
+        username=user.username,
+        role=user.role,
+        is_default=user.is_default,
+        is_active=user.is_active,
+        permissions=user.permissions or "{}",
+    )
 
 
 # --- Services API ---
@@ -563,6 +569,60 @@ def get_system_stats_endpoint(username: str = Depends(check_auth)):
     return services.get_system_stats()
 
 
+# --- Device Identity (معرّف الجهاز) API ---
+
+@app.get("/api/device-identity/", response_model=models.DeviceIdentityRead, tags=["System"])
+def get_device_identity(
+    db: Session = Depends(get_session),
+    current_user: models.AdminUser = Depends(check_auth),
+):
+    """الحصول على معرّف الجهاز (القيم المخصصة والنظام والفعّالة)."""
+    from backend.database import get_or_create_device_identity
+    from backend.services.system_stats import _get_system_identity_raw, get_machine_identity
+    di = get_or_create_device_identity(db)
+    system = _get_system_identity_raw()
+    active = get_machine_identity()
+    return models.DeviceIdentityRead(
+        custom_serial=di.custom_serial,
+        custom_uuid=di.custom_uuid,
+        system_serial=system["serial_number"],
+        system_uuid=system["machine_uuid"],
+        active_serial=active["serial_number"],
+        active_uuid=active["machine_uuid"],
+    )
+
+
+@app.put("/api/device-identity/", response_model=models.DeviceIdentityRead, tags=["System"])
+def update_device_identity(
+    body: models.DeviceIdentityUpdate,
+    db: Session = Depends(get_session),
+    current_user: models.AdminUser = Depends(check_auth),
+):
+    """تعديل معرّف الجهاز — للمالك فقط."""
+    if current_user.role != "owner":
+        raise HTTPException(status_code=403, detail="فقط المالك يمكنه تعديل معرّف الجهاز")
+    from backend.database import get_or_create_device_identity
+    from backend.services.system_stats import _get_system_identity_raw, get_machine_identity
+    di = get_or_create_device_identity(db)
+    if body.custom_serial is not None:
+        di.custom_serial = body.custom_serial.strip() if body.custom_serial.strip() else None
+    if body.custom_uuid is not None:
+        di.custom_uuid = body.custom_uuid.strip() if body.custom_uuid.strip() else None
+    db.add(di)
+    db.commit()
+    db.refresh(di)
+    system = _get_system_identity_raw()
+    active = get_machine_identity()
+    return models.DeviceIdentityRead(
+        custom_serial=di.custom_serial,
+        custom_uuid=di.custom_uuid,
+        system_serial=system["serial_number"],
+        system_uuid=system["machine_uuid"],
+        active_serial=active["serial_number"],
+        active_uuid=active["machine_uuid"],
+    )
+
+
 @app.get("/api/system-logs", tags=["Statistics"])
 def get_system_logs(limit: int = 100, level: Optional[str] = None, username: str = Depends(check_auth)):
     """جلب سجل أحداث النظام (آخر الأحداث أولاً)."""
@@ -770,36 +830,205 @@ def delete_delivery_request(
     return None
 
 
-# --- Admin credentials (إدارة لوحة التحكم) API ---
+# --- Admin credentials (إدارة الصلاحيات) API ---
 
 @app.get("/api/admin-credentials/", response_model=models.AdminCredentialsRead, tags=["Settings"])
-def get_admin_credentials(db: Session = Depends(get_session), username: str = Depends(check_auth)):
-    """الحصول على اسم المستخدم الحالي (بدون كلمة المرور)."""
-    admin = get_or_create_admin_user(db)
-    return models.AdminCredentialsRead(username=admin.username)
+def get_admin_credentials(db: Session = Depends(get_session), current_user: models.AdminUser = Depends(check_auth)):
+    return models.AdminCredentialsRead(username=current_user.username)
 
 
 @app.put("/api/admin-credentials/", response_model=models.AdminCredentialsRead, tags=["Settings"])
 def update_admin_credentials(
     body: models.AdminCredentialsUpdate,
     db: Session = Depends(get_session),
-    username: str = Depends(check_auth),
+    current_user: models.AdminUser = Depends(check_auth),
 ):
-    """تعديل اسم المستخدم أو كلمة المرور للدخول إلى لوحة التحكم. كلمة المرور الحالية اختيارية."""
-    from passlib.context import CryptContext
-    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    admin = get_or_create_admin_user(db)
+    """تعديل اسم المستخدم أو كلمة المرور للمستخدم الحالي."""
+    user = db.get(models.AdminUser, current_user.id)
     if body.current_password is not None and body.current_password.strip():
-        if not pwd_ctx.verify(body.current_password, admin.password_hash):
+        if not pwd_ctx.verify(body.current_password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="كلمة المرور الحالية غير صحيحة")
     if body.new_username is not None and body.new_username.strip():
-        admin.username = body.new_username.strip()
+        existing = get_user_by_username(db, body.new_username.strip())
+        if existing and existing.id != user.id:
+            raise HTTPException(status_code=400, detail="اسم المستخدم مستخدم بالفعل")
+        user.username = body.new_username.strip()
     if body.new_password is not None and body.new_password.strip():
-        admin.password_hash = pwd_ctx.hash(body.new_password)
-    db.add(admin)
+        user.password_hash = pwd_ctx.hash(body.new_password)
+        if user.is_default:
+            user.is_default = False
+    db.add(user)
     db.commit()
-    db.refresh(admin)
-    return models.AdminCredentialsRead(username=admin.username)
+    db.refresh(user)
+    return models.AdminCredentialsRead(username=user.username)
+
+
+# --- User Management (إدارة المستخدمين) API ---
+
+@app.get("/api/users/me", response_model=models.AdminUserRead, tags=["Users"])
+def get_current_user(current_user: models.AdminUser = Depends(check_auth)):
+    """الحصول على بيانات المستخدم الحالي."""
+    return models.AdminUserRead(
+        id=current_user.id,
+        username=current_user.username,
+        role=current_user.role,
+        parent_id=current_user.parent_id,
+        permissions=current_user.permissions or "{}",
+        is_default=current_user.is_default,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+    )
+
+
+@app.get("/api/users/", response_model=List[models.AdminUserRead], tags=["Users"])
+def list_users(db: Session = Depends(get_session), current_user: models.AdminUser = Depends(check_auth)):
+    """
+    قائمة المستخدمين حسب الدور:
+    - المالك يرى الجميع
+    - المدير يرى فقط المدراء الفرعيين التابعين له
+    """
+    if current_user.role == "owner":
+        users = db.exec(select(models.AdminUser)).all()
+    elif current_user.role == "manager":
+        own = db.get(models.AdminUser, current_user.id)
+        subs = db.exec(
+            select(models.AdminUser).where(models.AdminUser.parent_id == current_user.id)
+        ).all()
+        users = [own] + list(subs)
+    else:
+        users = [db.get(models.AdminUser, current_user.id)]
+    return [
+        models.AdminUserRead(
+            id=u.id, username=u.username, role=u.role,
+            parent_id=u.parent_id, permissions=u.permissions or "{}",
+            is_default=u.is_default, is_active=u.is_active,
+            created_at=u.created_at,
+        ) for u in users
+    ]
+
+
+@app.post("/api/users/", response_model=models.AdminUserRead, status_code=201, tags=["Users"])
+def create_user(
+    body: models.AdminUserCreate,
+    db: Session = Depends(get_session),
+    current_user: models.AdminUser = Depends(check_auth),
+):
+    """
+    إنشاء مستخدم جديد:
+    - المالك يمكنه إنشاء مدير
+    - المدير يمكنه إنشاء مدير فرعي
+    """
+    if current_user.role == "owner" and body.role != "manager":
+        raise HTTPException(status_code=400, detail="المالك يمكنه فقط إنشاء مدراء")
+    if current_user.role == "manager" and body.role != "sub_manager":
+        raise HTTPException(status_code=400, detail="المدير يمكنه فقط إنشاء مدراء فرعيين")
+    if current_user.role == "sub_manager":
+        raise HTTPException(status_code=403, detail="المدير الفرعي لا يملك صلاحية إنشاء مستخدمين")
+
+    existing = get_user_by_username(db, body.username.strip())
+    if existing:
+        raise HTTPException(status_code=400, detail="اسم المستخدم مستخدم بالفعل")
+
+    from datetime import datetime
+    new_user = models.AdminUser(
+        username=body.username.strip(),
+        password_hash=pwd_ctx.hash(body.password),
+        role=body.role,
+        parent_id=current_user.id,
+        permissions=body.permissions or "{}",
+        is_default=False,
+        created_at=datetime.now().isoformat(),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return models.AdminUserRead(
+        id=new_user.id, username=new_user.username, role=new_user.role,
+        parent_id=new_user.parent_id, permissions=new_user.permissions or "{}",
+        is_default=new_user.is_default, is_active=new_user.is_active,
+        created_at=new_user.created_at,
+    )
+
+
+@app.put("/api/users/{user_id}", response_model=models.AdminUserRead, tags=["Users"])
+def update_user(
+    user_id: int,
+    body: models.AdminUserUpdate,
+    db: Session = Depends(get_session),
+    current_user: models.AdminUser = Depends(check_auth),
+):
+    """تعديل مستخدم (صلاحيات، اسم، كلمة مرور)."""
+    target = db.get(models.AdminUser, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="المستخدم غير موجود")
+
+    if current_user.role == "owner":
+        pass
+    elif current_user.role == "manager":
+        if target.parent_id != current_user.id and target.id != current_user.id:
+            raise HTTPException(status_code=403, detail="لا تملك صلاحية تعديل هذا المستخدم")
+    else:
+        if target.id != current_user.id:
+            raise HTTPException(status_code=403, detail="لا تملك صلاحية تعديل هذا المستخدم")
+
+    if body.username is not None and body.username.strip():
+        existing = get_user_by_username(db, body.username.strip())
+        if existing and existing.id != target.id:
+            raise HTTPException(status_code=400, detail="اسم المستخدم مستخدم بالفعل")
+        target.username = body.username.strip()
+    if body.password is not None and body.password.strip():
+        target.password_hash = pwd_ctx.hash(body.password)
+        if target.is_default:
+            target.is_default = False
+    if body.permissions is not None:
+        target.permissions = body.permissions
+    if body.is_active is not None:
+        if target.role == "owner":
+            raise HTTPException(status_code=400, detail="لا يمكن تعطيل حساب المالك")
+        target.is_active = body.is_active
+
+    db.add(target)
+    db.commit()
+    db.refresh(target)
+    return models.AdminUserRead(
+        id=target.id, username=target.username, role=target.role,
+        parent_id=target.parent_id, permissions=target.permissions or "{}",
+        is_default=target.is_default, is_active=target.is_active,
+        created_at=target.created_at,
+    )
+
+
+@app.delete("/api/users/{user_id}", tags=["Users"])
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_session),
+    current_user: models.AdminUser = Depends(check_auth),
+):
+    """حذف مستخدم."""
+    target = db.get(models.AdminUser, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="المستخدم غير موجود")
+
+    if target.role == "owner":
+        raise HTTPException(status_code=403, detail="لا يمكن حذف حساب المالك")
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="لا يمكنك حذف حسابك الحالي")
+
+    if current_user.role == "owner":
+        pass
+    elif current_user.role == "manager":
+        if target.parent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="لا تملك صلاحية حذف هذا المستخدم")
+    else:
+        raise HTTPException(status_code=403, detail="لا تملك صلاحية الحذف")
+
+    subs = db.exec(select(models.AdminUser).where(models.AdminUser.parent_id == target.id)).all()
+    for sub in subs:
+        db.delete(sub)
+
+    db.delete(target)
+    db.commit()
+    return {"ok": True, "detail": "تم حذف المستخدم بنجاح"}
 
 
 # --- Network (الشبكة) API ---

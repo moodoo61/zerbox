@@ -28,11 +28,8 @@ def _shorten_uuid(uuid_str: str) -> str:
     return s
 
 
-def get_machine_identity() -> dict:
-    """
-    الحصول على الرقم التسلسلي و UUID للجهاز من DMI (Linux).
-    يعيد: serial_number, machine_uuid (الجزء الأخير من UUID فقط)
-    """
+def _get_system_identity_raw() -> dict:
+    """القيم الأصلية من النظام (بدون تحقق من القاعدة)."""
     base = "/sys/class/dmi/id"
     serial = _read_sys_file(os.path.join(base, "product_serial"))
     uuid_full = _read_sys_file(os.path.join(base, "product_uuid"))
@@ -45,10 +42,39 @@ def get_machine_identity() -> dict:
     return {"serial_number": serial, "machine_uuid": machine_uuid}
 
 
+def _get_custom_identity() -> dict:
+    """جلب القيم المخصصة من قاعدة البيانات (إن وجدت)."""
+    try:
+        from backend.database import engine, get_or_create_device_identity
+        from sqlmodel import Session
+        with Session(engine) as session:
+            di = get_or_create_device_identity(session)
+            return {
+                "custom_serial": di.custom_serial,
+                "custom_uuid": di.custom_uuid,
+            }
+    except Exception:
+        return {"custom_serial": None, "custom_uuid": None}
+
+
+def get_machine_identity() -> dict:
+    """
+    الحصول على الرقم التسلسلي و UUID للجهاز.
+    يستخدم القيم المخصصة من قاعدة البيانات إن وجدت، وإلا القيم من النظام.
+    """
+    system = _get_system_identity_raw()
+    custom = _get_custom_identity()
+
+    serial = custom["custom_serial"] if custom["custom_serial"] else system["serial_number"]
+    uuid_val = custom["custom_uuid"] if custom["custom_uuid"] else system["machine_uuid"]
+
+    return {"serial_number": serial, "machine_uuid": uuid_val}
+
+
 def get_device_id() -> str:
     """
-    الدالة الموحّدة لمعرّف الجهاز — تُرجع الجزء الأخير من UUID البوردة (12 حرف).
-    يُستخدم في: توليد المفتاح، اتصال L2TP، عرض لوحة التحكم.
+    الدالة الموحّدة لمعرّف الجهاز — تُرجع UUID المختصر (12 حرف).
+    يستخدم القيمة المخصصة إن وجدت.
     """
     identity = get_machine_identity()
     device_id = identity.get("machine_uuid", "—")
