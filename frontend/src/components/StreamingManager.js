@@ -39,7 +39,8 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [channelStats, setChannelStats] = useState({});
     const [loadingStats, setLoadingStats] = useState(false);
     const [channelActions, setChannelActions] = useState({});
-    const [startupResult, setStartupResult] = useState(null);
+    const [mistServerAvailable, setMistServerAvailable] = useState(null); // null=checking, true/false
+    const [mistServerMessage, setMistServerMessage] = useState(null);
     const [defaultQuality, setDefaultQuality] = useState(2); // 1=اعلى، 2=متوسطة، 3=منخفضة
     const [pendingQuality, setPendingQuality] = useState({}); // streamKey -> quality (عند اختيار جودة مختلفة تظهر زر التطبيق)
 
@@ -154,21 +155,44 @@ const StreamingManager = ({ auth, userInfo }) => {
 
     // تحديث تلقائي للإحصائيات عند التحميل وكل 30 ثانية
     useEffect(() => {
-        if (isActivated && channels.length > 0) {
-            // جلب الإحصائيات فوراً عند تحميل القنوات
+        if (isActivated && channels.length > 0 && mistServerAvailable) {
             fetchAllChannelsStats();
             
-            // ثم التحديث التلقائي كل 30 ثانية
             const interval = setInterval(() => {
                 fetchAllChannelsStats();
-            }, 30000); // 30 ثانية
+            }, 30000);
 
             return () => clearInterval(interval);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActivated, channels.length]);
+    }, [isActivated, channels.length, mistServerAvailable]);
 
     const checkActivationStatus = async () => {
+        // فحص سيرفر المشاهدة أولاً
+        try {
+            const mistResponse = await fetch('/api/streaming/check-mistserver', {
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            if (mistResponse.ok) {
+                const mistData = await mistResponse.json();
+                const isAvailable = mistData.status === 'success';
+                setMistServerAvailable(isAvailable);
+                setMistServerMessage(mistData.message);
+                if (!isAvailable) {
+                    return;
+                }
+            } else {
+                setMistServerAvailable(false);
+                setMistServerMessage('سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني');
+                return;
+            }
+        } catch (err) {
+            setMistServerAvailable(false);
+            setMistServerMessage('سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني');
+            return;
+        }
+
+        // فحص حالة التفعيل
         try {
             const response = await fetch('/api/streaming/status', {
                 headers: { 'Authorization': `Basic ${auth}` }
@@ -182,19 +206,6 @@ const StreamingManager = ({ auth, userInfo }) => {
             }
         } catch (err) {
             console.error('Error checking activation status:', err);
-        }
-
-        // جلب نتيجة التفعيل التلقائي عند بدء تشغيل النظام
-        try {
-            const startupResponse = await fetch('/api/streaming/startup-result');
-            if (startupResponse.ok) {
-                const startupData = await startupResponse.json();
-                if (startupData && startupData.status) {
-                    setStartupResult(startupData);
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching startup result:', err);
         }
     };
 
@@ -217,10 +228,32 @@ const StreamingManager = ({ auth, userInfo }) => {
     };
 
     const handleSubscriptionSubmit = async () => {
-        // لا يحتاج المستخدم لإدخال بيانات - سيتم التفعيل تلقائياً من خلال key.json
         setLoading(true);
         setError(null);
         setSuccess(false);
+
+        // فحص سيرفر المشاهدة أولاً
+        try {
+            const mistResponse = await fetch('/api/streaming/check-mistserver', {
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            if (mistResponse.ok) {
+                const mistData = await mistResponse.json();
+                if (mistData.status !== 'success') {
+                    setError(mistData.message);
+                    setMistServerAvailable(false);
+                    setMistServerMessage(mistData.message);
+                    setLoading(false);
+                    return;
+                }
+                setMistServerAvailable(true);
+            }
+        } catch (err) {
+            setError('سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني');
+            setMistServerAvailable(false);
+            setLoading(false);
+            return;
+        }
 
         try {
             const response = await fetch('/api/streaming/activate', {
@@ -241,10 +274,8 @@ const StreamingManager = ({ auth, userInfo }) => {
             setIsActivated(data.is_active);
             setError(null);
             
-            // جلب القنوات بعد التفعيل
             if (data.is_active) {
                 fetchChannels();
-                // تحديث الإحصائيات بعد تأخير قصير للسماح للقناة بالبدء
                 setTimeout(() => {
                     fetchAllChannelsStats();
                 }, 3000);
@@ -300,12 +331,21 @@ const StreamingManager = ({ auth, userInfo }) => {
             
             const data = await response.json();
             setMistServerStatus(data);
+            const isAvailable = data.status === 'success';
+            setMistServerAvailable(isAvailable);
+            setMistServerMessage(data.message);
+
+            if (isAvailable && isActivated && channels.length === 0) {
+                fetchChannels();
+            }
             
         } catch (err) {
             setMistServerStatus({
                 status: 'error',
-                message: `فشل في الاتصال: ${err.message}`
+                message: 'سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني'
             });
+            setMistServerAvailable(false);
+            setMistServerMessage('سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني');
         } finally {
             setTestingConnection(false);
         }
@@ -541,14 +581,10 @@ const StreamingManager = ({ auth, userInfo }) => {
                         />
                     </Box>
 
-                    {/* نتيجة التفعيل التلقائي عند بدء تشغيل النظام */}
-                    {startupResult && startupResult.status && (
-                        <Alert 
-                            severity={startupResult.status === 'success' ? 'success' : startupResult.status === 'warning' ? 'warning' : 'error'} 
-                            sx={{ mb: 2 }}
-                            onClose={() => setStartupResult(null)}
-                        >
-                            {startupResult.message}
+                    {/* حالة سيرفر المشاهدة */}
+                    {mistServerAvailable === false && mistServerMessage && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {mistServerMessage}
                         </Alert>
                     )}
 
@@ -587,8 +623,8 @@ const StreamingManager = ({ auth, userInfo }) => {
                 </CardContent>
             </Card>
 
-            {/* القنوات (تظهر بعد التفعيل) */}
-            {isActivated && (
+            {/* القنوات (تظهر بعد التفعيل وعند توفر سيرفر المشاهدة) */}
+            {isActivated && mistServerAvailable && (
                 <Card>
                     <CardContent>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

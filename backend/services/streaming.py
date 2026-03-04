@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from .. import models
 from .mistserver import (
     build_source_url_with_quality,
+    check_mistserver_connection,
     create_mistserver_stream,
     get_mistserver_streams,
     delete_all_mistserver_streams,
@@ -161,6 +162,10 @@ def verify_key_and_fetch_channels(key: str) -> Dict[str, Any]:
 def activate_streaming_service(db: Session, subscription_data=None) -> models.StreamingSubscription:
     subscription = get_or_create_streaming_subscription(db)
     try:
+        mist_check = check_mistserver_connection()
+        if mist_check["status"] != "success":
+            raise Exception(mist_check["message"])
+
         key = read_local_key()
         if not key:
             raise Exception("لم يتم العثور على ملف المفتاح (key.json أو kay.json)")

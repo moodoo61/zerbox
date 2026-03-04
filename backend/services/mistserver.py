@@ -10,6 +10,29 @@ MISTSERVER_PASSWORD = "admin"
 MISTSERVER_API_URL = f"http://{MISTSERVER_HOST}:{MISTSERVER_PORT}/api"
 
 
+def check_mistserver_connection() -> dict:
+    """فحص اتصال MistServer وإرجاع النتيجة."""
+    try:
+        auth_command = {
+            "authorize": {
+                "username": MISTSERVER_USERNAME,
+                "password": MISTSERVER_PASSWORD
+            }
+        }
+        auth_response = requests.get(
+            MISTSERVER_API_URL,
+            params={"command": json.dumps(auth_command)},
+            timeout=5
+        )
+        if auth_response.ok:
+            return {"status": "success", "message": "سيرفر المشاهدة متصل ويعمل بشكل طبيعي"}
+        return {"status": "error", "message": "سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني"}
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        return {"status": "error", "message": "سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني"}
+    except Exception:
+        return {"status": "error", "message": "سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني"}
+
+
 def call_mistserver_api(command_data: dict) -> dict:
     """Call MistServer API with authentication."""
     try:
@@ -37,9 +60,13 @@ def call_mistserver_api(command_data: dict) -> dict:
         if not response.ok:
             raise Exception(f"فشل استدعاء سيرفر البث المحلي: {response.status_code}")
         return response.json()
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"فشل الاتصال بسيرفر البث المحلي: {str(e)}")
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        raise Exception("سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني")
+    except requests.exceptions.RequestException:
+        raise Exception("سيرفر المشاهدة غير مثبت، يرجى التواصل مع الدعم الفني")
     except Exception as e:
+        if "سيرفر المشاهدة غير مثبت" in str(e):
+            raise
         raise Exception(f"خطأ في سيرفر البث المحلي: {str(e)}")
 
 

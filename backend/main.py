@@ -174,32 +174,50 @@ async def lifespan(app: FastAPI):
         print(f"❌ خطأ أثناء توليد المفتاح: {e}")
         log_event(f"خطأ في توليد المفتاح: {e}", "error", "key")
 
+    # فحص سيرفر المشاهدة MistServer قبل التفعيل
+    print("🔍 فحص اتصال سيرفر المشاهدة MistServer...")
+    mist_check = services.check_mistserver_connection()
+    if mist_check["status"] == "success":
+        print("✅ سيرفر المشاهدة متصل ويعمل")
+        log_event("سيرفر المشاهدة متصل ويعمل بشكل طبيعي", "success", "mistserver")
+    else:
+        print(f"❌ {mist_check['message']}")
+        log_event(mist_check["message"], "error", "mistserver")
+
     # Auto-activate streaming service on startup
     print("🔄 بدء التفعيل التلقائي لخدمة البث...")
-    try:
-        with next(get_session()) as db:
-            result = services.activate_streaming_service(db=db)
-            if result and result.is_active:
-                auto_activation_result = {
-                    "status": "success",
-                    "message": "تم تفعيل خدمة البث المباشر تلقائياً عند بدء تشغيل النظام"
-                }
-                print("✅ تم التفعيل التلقائي لخدمة البث بنجاح")
-                log_event("تم تفعيل خدمة البث تلقائياً", "success", "streaming")
-            else:
-                auto_activation_result = {
-                    "status": "warning",
-                    "message": "تم محاولة التفعيل التلقائي ولكن الخدمة غير نشطة"
-                }
-                print("⚠️ التفعيل التلقائي: الخدمة غير نشطة")
-                log_event("خدمة البث غير نشطة بعد التفعيل", "warning", "streaming")
-    except Exception as e:
+    if mist_check["status"] != "success":
         auto_activation_result = {
             "status": "error",
-            "message": f"فشل التفعيل التلقائي: {str(e)}"
+            "message": mist_check["message"]
         }
-        print(f"❌ فشل التفعيل التلقائي: {e}")
-        log_event(f"فشل تفعيل البث: {e}", "error", "streaming")
+        print(f"⚠️ تخطي التفعيل التلقائي: {mist_check['message']}")
+        log_event(f"تخطي التفعيل التلقائي: {mist_check['message']}", "warning", "streaming")
+    else:
+        try:
+            with next(get_session()) as db:
+                result = services.activate_streaming_service(db=db)
+                if result and result.is_active:
+                    auto_activation_result = {
+                        "status": "success",
+                        "message": "تم تفعيل خدمة البث المباشر تلقائياً عند بدء تشغيل النظام"
+                    }
+                    print("✅ تم التفعيل التلقائي لخدمة البث بنجاح")
+                    log_event("تم تفعيل خدمة البث تلقائياً", "success", "streaming")
+                else:
+                    auto_activation_result = {
+                        "status": "warning",
+                        "message": "تم محاولة التفعيل التلقائي ولكن الخدمة غير نشطة"
+                    }
+                    print("⚠️ التفعيل التلقائي: الخدمة غير نشطة")
+                    log_event("خدمة البث غير نشطة بعد التفعيل", "warning", "streaming")
+        except Exception as e:
+            auto_activation_result = {
+                "status": "error",
+                "message": f"فشل التفعيل التلقائي: {str(e)}"
+            }
+            print(f"❌ فشل التفعيل التلقائي: {e}")
+            log_event(f"فشل تفعيل البث: {e}", "error", "streaming")
 
     # تفعيل الهوتسبوت تلقائياً إلا إذا عطّله المستخدم
     try:
@@ -1265,6 +1283,10 @@ def activate_streaming_service(
     Activate streaming service automatically by reading key from key.json file.
     Verifies key with external server, removes old channels, and adds new channels.
     """
+    mist_check = services.check_mistserver_connection()
+    if mist_check["status"] != "success":
+        log_event(f"فشل التفعيل: {mist_check['message']}", "error", "streaming")
+        raise HTTPException(status_code=503, detail=mist_check["message"])
     return services.activate_streaming_service(db=db)
 
 
@@ -1280,6 +1302,10 @@ def refresh_streaming_channels(
     3. Store and add them to MistServer (no deletion - only add/update)
     """
     try:
+        mist_check = services.check_mistserver_connection()
+        if mist_check["status"] != "success":
+            return {"status": "error", "message": mist_check["message"]}
+
         # 1. قراءة المفتاح من key.json
         key = services.read_local_key()
         if not key:
@@ -1391,16 +1417,28 @@ def sync_channels_from_external_server(
     return services.sync_channels_from_external_server(db=db)
 
 
+@app.get("/api/streaming/check-mistserver", tags=["Streaming"])
+def check_mistserver_status(username: str = Depends(check_auth)):
+    """Quick check if MistServer is installed and running."""
+    return services.check_mistserver_connection()
+
+
 @app.get("/api/streaming/test-mistserver", tags=["Streaming"])
 def test_mistserver_connection(username: str = Depends(check_auth)):
     """
     Test connection to MistServer.
     """
-    try:
-        result = services.get_mistserver_streams()
-        return {"status": "success", "message": "تم الاتصال بسيرفر البث المحلي بنجاح", "data": result}
-    except Exception as e:
-        return {"status": "error", "message": f"فشل الاتصال بسيرفر البث المحلي: {str(e)}"}
+    check_result = services.check_mistserver_connection()
+    if check_result["status"] == "success":
+        log_event("فحص سيرفر المشاهدة: متصل ويعمل بشكل طبيعي", "success", "mistserver")
+        try:
+            streams = services.get_mistserver_streams()
+            return {"status": "success", "message": "سيرفر المشاهدة متصل ويعمل بشكل طبيعي", "data": streams}
+        except Exception:
+            return {"status": "success", "message": "سيرفر المشاهدة متصل ويعمل بشكل طبيعي"}
+    else:
+        log_event(f"فحص سيرفر المشاهدة: {check_result['message']}", "error", "mistserver")
+        return {"status": "error", "message": check_result["message"]}
 
 
 @app.get("/api/streaming/test-active-streams", tags=["Streaming"])
