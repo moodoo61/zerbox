@@ -22,7 +22,7 @@
 
 | المشروع | المسار | الاستخدام | إعادة البناء على جهاز جديد |
 |---------|--------|-----------|----------------------------|
-| **القرآن الكريم** | `frontend/quran/` | خدمة افتراضية من لوحة التحكم | `cd frontend/quran && npm install && npm run build` (أو `npm run serve` حسب السكربت) |
+| **القرآن الكريم** | `quran/` | خدمة افتراضية من لوحة التحكم | `cd quran && npm install && npm run build` (أو `npm run serve` حسب السكربت) |
 | **قافية** | `qafiyah/` | خدمة افتراضية (منصة الشعر) | `cd qafiyah && npm install` ثم `cd apps/web && npm install` (أو حسب بنية المشروع) |
 
 ---

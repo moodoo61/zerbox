@@ -46,9 +46,9 @@ echo "  ✅ الواجهة الأمامية جاهزة"
 
 # 3) القرآن الكريم (Vue 2)
 echo ""
-if [ -f "$ZERO_ROOT/frontend/quran/package.json" ]; then
+if [ -f "$ZERO_ROOT/quran/package.json" ]; then
   echo "[3/4] تثبيت تطبيق القرآن الكريم (Vue)..."
-  cd "$ZERO_ROOT/frontend/quran"
+  cd "$ZERO_ROOT/quran"
   npm install
   if [ ! -d "dist" ]; then
     echo "      بناء تطبيق القرآن..."

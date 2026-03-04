@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Box, Typography, TextField, Button, Paper, CircularProgress, Alert,
     Slider, Grid, ToggleButtonGroup, ToggleButton, Divider, Tabs, Tab,
@@ -17,6 +18,7 @@ import {
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import NetworkTab from './NetworkTab';
+import UpdateTab from './UpdateTab';
 
 const SECTIONS = [
     { key: 'نظرة عامة', label: 'نظرة عامة', isParent: true },
@@ -40,6 +42,7 @@ const SECTIONS = [
     { key: 'الضبط > ضبط الرئيسية', label: 'ضبط الرئيسية', isChild: true },
     { key: 'الضبط > إدارة الصلاحيات', label: 'إدارة الصلاحيات', isChild: true },
     { key: 'الضبط > الشبكة', label: 'الشبكة', isChild: true },
+    { key: 'الضبط > التحديث', label: 'التحديث', isChild: true },
 ];
 
 const ROLE_LABELS = { owner: 'مالك', manager: 'مدير', sub_manager: 'مدير فرعي' };
@@ -70,7 +73,8 @@ function getMyVisibleSections(userInfo) {
 }
 
 const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
-    const [settingsTab, setSettingsTab] = useState(0);
+    const location = useLocation();
+    const [settingsTab, setSettingsTab] = useState(() => location.state?.tab ?? 0);
     const [settings, setSettings] = useState({
         welcome_message: '', header_color: '#ffffff', welcome_font_size: 48,
         welcome_font_color: '#FFFFFF', header_background_type: 'color', header_color_opacity: 1.0
@@ -387,6 +391,7 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
                 <Tab label="ضبط الرئيسية" />
                 <Tab label="إدارة الصلاحيات" icon={<SecurityIcon />} iconPosition="start" />
                 <Tab label="الشبكة" />
+                <Tab label="التحديث" icon={<CloudUploadIcon />} iconPosition="start" />
             </Tabs>
 
             {/* تاب ضبط الرئيسية */}
@@ -473,6 +478,11 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
             {/* تاب الشبكة */}
             {settingsTab === 2 && (
                 <Box sx={{ p: 3 }}><NetworkTab auth={auth} /></Box>
+            )}
+
+            {/* تاب التحديث */}
+            {settingsTab === 3 && (
+                <UpdateTab auth={auth} />
             )}
 
             {/* تاب إدارة الصلاحيات */}

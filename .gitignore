@@ -26,7 +26,8 @@ frontend/.env.test.local
 frontend/.env.production.local
 
 # Quran subproject
-frontend/quran/node_modules/
+quran/node_modules/
+quran/dist/
 
 # Qafiyah
 qafiyah/node_modules/

@@ -36,7 +36,7 @@ def initialize_default_services(db: Session):
         # مسارات الخدمات الداخلية نسبةً لجذر المشروع؛ Jellyfin يبقى خارج المشروع
         root = PROJECT_ROOT
         all_default = [
-            {"name": "القرآن الكريم", "path": os.path.join(root, "frontend", "quran"), "port": 8081, "start_command": "npm run serve -- --port 8081", "description": "تطبيق القرآن الكريم مع التلاوة والتفسير", "is_active": False, "auto_start": False},
+            {"name": "القرآن الكريم", "path": os.path.join(root, "quran"), "port": 8081, "start_command": "npm run serve -- --port 8081", "description": "تطبيق القرآن الكريم مع التلاوة والتفسير", "is_active": False, "auto_start": False},
             {"name": "قافية", "path": os.path.join(root, "qafiyah", "apps", "web"), "port": 8082, "start_command": "npm run dev -- -p 8082", "description": "منصة الشعر العربي والقوافي", "is_active": False, "auto_start": False},
             {"name": "الاستراحة", "path": "/usr/lib/jellyfin", "port": 8096, "start_command": "systemctl start jellyfin", "description": "سيرفر الوسائط - مكتبة الأفلام والمسلسلات", "is_active": True, "is_running": True, "process_id": 713, "auto_start": False},
             {"name": "البث المباشر", "path": os.path.join(root, "frontend"), "port": 3000, "start_command": "viewer_page_toggle", "description": "صفحة مشاهدة البث المباشر للقنوات", "is_active": False, "is_running": False, "auto_start": False},

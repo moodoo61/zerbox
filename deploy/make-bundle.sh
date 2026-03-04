@@ -38,7 +38,7 @@ vapid_keys.json
 node_modules
 frontend/node_modules
 frontend/build
-frontend/quran/node_modules
+quran/node_modules
 qafiyah/node_modules
 .DS_Store
 *.tar.gz

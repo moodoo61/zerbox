@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, useTheme } from '@mui/material';
+import { Box, Typography, Paper, useTheme, Button, Chip } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import SystemMonitor from './SystemMonitor';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-
-const PROJECT_VERSION = '1.0.1';
+import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 
 const Dashboard = ({ auth, userInfo }) => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const [vpnConnected, setVpnConnected] = useState(false);
+    const [currentVersion, setCurrentVersion] = useState('');
+    const [updateAvailable, setUpdateAvailable] = useState(null);
+
+    useEffect(() => {
+        fetch('/api/system/version')
+            .then(res => res.json())
+            .then(data => setCurrentVersion(data.version || ''))
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (!auth) return;
@@ -26,8 +36,59 @@ const Dashboard = ({ auth, userInfo }) => {
         return () => clearInterval(interval);
     }, [auth]);
 
+    useEffect(() => {
+        if (!auth) return;
+        const checkUpdate = async () => {
+            try {
+                const res = await fetch('/api/system/check-update', {
+                    headers: { 'Authorization': 'Basic ' + auth }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.has_update) setUpdateAvailable(data);
+                }
+            } catch (_) {}
+        };
+        checkUpdate();
+    }, [auth]);
+
     return (
         <Box sx={{ width: '100%' }}>
+            {/* إشعار التحديث */}
+            {updateAvailable && (
+                <Paper sx={{
+                    p: 1.5, mb: 1.5,
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: 'white', borderRadius: 2,
+                    display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap',
+                    boxShadow: '0 2px 12px rgba(245,158,11,0.3)'
+                }}>
+                    <SystemUpdateAltIcon />
+                    <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight={700}>
+                            يتوفر تحديث جديد — الإصدار {updateAvailable.latest_version}
+                        </Typography>
+                        {updateAvailable.release_name && (
+                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                {updateAvailable.release_name}
+                            </Typography>
+                        )}
+                    </Box>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => navigate('/admin/settings', { state: { tab: 3 } })}
+                        sx={{
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            color: 'white', fontWeight: 700,
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.35)' }
+                        }}
+                    >
+                        تحديث الآن
+                    </Button>
+                </Paper>
+            )}
+
             {/* رأس نظرة عامة */}
             <Paper sx={{ 
                 p: 1.5, 
@@ -68,7 +129,7 @@ const Dashboard = ({ auth, userInfo }) => {
                             variant="caption"
                             sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}
                         >
-                            الإصدار {PROJECT_VERSION}
+                            الإصدار {currentVersion || '...'}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Box
@@ -99,4 +160,4 @@ const Dashboard = ({ auth, userInfo }) => {
     );
 };
 
-export default Dashboard; 
+export default Dashboard;

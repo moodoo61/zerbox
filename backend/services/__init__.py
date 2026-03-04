@@ -79,6 +79,14 @@ from .notifications import (
 # سجل أحداث النظام
 from .system_log import log_event, get_logs, clear_logs
 
+# نظام التحديث
+from .updater import (
+    get_current_version,
+    check_for_updates,
+    get_update_status,
+    start_update,
+)
+
 # الخدمات الافتراضية
 from .default_services import (
     get_server_ip,

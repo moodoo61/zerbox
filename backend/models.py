@@ -312,7 +312,7 @@ class LoginResponse(SQLModel):
 
 class DefaultServiceBase(SQLModel):
     name: str = Field(index=True)  # اسم الخدمة (مثل "القرآن الكريم")
-    path: str  # مسار المشروع (مثلاً frontend/quran داخل جذر Zero)
+    path: str  # مسار المشروع (مثلاً quran داخل جذر Zero)
     port: int  # البورت الافتراضي (مثل 3001)
     start_command: str  # الأمر لبدء تشغيل الخدمة (مثل "npm run serve")
     description: Optional[str] = None  # وصف الخدمة
