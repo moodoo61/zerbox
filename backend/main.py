@@ -1079,6 +1079,10 @@ class WifiHotspotStartRequest(SQLModel):
     gateway: Optional[str] = "192.168.60.1"
 
 
+class ProjectPortUpdateRequest(SQLModel):
+    port: int
+
+
 @app.get("/api/network/interfaces", tags=["Network"])
 def get_network_interfaces(username: str = Depends(check_auth)):
     """قائمة واجهات الشبكة (إيثرنت / واي فاي) مع العناوين والحالة."""
@@ -1233,6 +1237,31 @@ def stop_wifi_hotspot(username: str = Depends(check_auth)):
         db.add(settings)
         db.commit()
     return {"status": "ok", "message": msg}
+
+
+@app.get("/api/network/project-port", tags=["Network"])
+def get_project_port(username: str = Depends(check_auth)):
+    """قراءة منفذ المشروع الحالي."""
+    from backend import network_utils
+    port = network_utils.get_project_port()
+    return {"port": port}
+
+
+@app.put("/api/network/project-port", tags=["Network"])
+def update_project_port(
+    body: ProjectPortUpdateRequest,
+    username: str = Depends(check_auth),
+):
+    """تغيير منفذ المشروع (يتطلب إعادة تشغيل الخدمة)."""
+    from backend import network_utils
+    if body.port < 1 or body.port > 65535:
+        raise HTTPException(status_code=400, detail="المنفذ يجب أن يكون بين 1 و 65535")
+    if not network_utils._helper_available():
+        raise HTTPException(status_code=503, detail="خدمة zero-network-helper غير مشغّلة")
+    ok, msg = network_utils.set_project_port(body.port)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg, "port": body.port}
 
 
 # --- Captive Portal Detection ---

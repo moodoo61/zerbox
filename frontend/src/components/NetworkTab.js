@@ -3,7 +3,8 @@ import {
     Box, Typography, Card, CardContent, Alert, Button, TextField,
     CircularProgress, ToggleButtonGroup, ToggleButton, Grid, Divider,
     Chip, Collapse, Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, IconButton, Tooltip
+    TableHead, TableRow, IconButton, Tooltip,
+    Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
     Wifi as WifiIcon,
@@ -17,7 +18,8 @@ import {
     SignalWifi4Bar as SignalIcon,
     Router as RouterIcon,
     ContentCopy as CopyIcon,
-    PowerSettingsNew as PowerIcon
+    PowerSettingsNew as PowerIcon,
+    OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 
 const NetworkTab = ({ auth }) => {
@@ -39,6 +41,17 @@ const NetworkTab = ({ auth }) => {
     const [hotspotToggling, setHotspotToggling] = useState(false);
     const [hotspotError, setHotspotError] = useState(null);
     const [hotspotSuccess, setHotspotSuccess] = useState(null);
+
+    // IP change redirect dialog
+    const [redirectInfo, setRedirectInfo] = useState(null);
+
+    // Project port state
+    const [projectPort, setProjectPort] = useState('');
+    const [projectPortInput, setProjectPortInput] = useState('');
+    const [projectPortLoading, setProjectPortLoading] = useState(true);
+    const [projectPortSaving, setProjectPortSaving] = useState(false);
+    const [projectPortError, setProjectPortError] = useState(null);
+    const [projectPortSuccess, setProjectPortSuccess] = useState(null);
 
     const fetchInterfaces = useCallback(async () => {
         setLoading(true);
@@ -94,10 +107,29 @@ const NetworkTab = ({ auth }) => {
         }
     }, [auth]);
 
+    const fetchProjectPort = useCallback(async () => {
+        try {
+            const res = await fetch('/api/network/project-port', {
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const port = String(data.port || 8000);
+                setProjectPort(port);
+                setProjectPortInput(port);
+            }
+        } catch (err) {
+            console.error('Project port fetch error:', err);
+        } finally {
+            setProjectPortLoading(false);
+        }
+    }, [auth]);
+
     useEffect(() => {
         fetchInterfaces();
         fetchHotspotStatus();
-    }, [fetchInterfaces, fetchHotspotStatus]);
+        fetchProjectPort();
+    }, [fetchInterfaces, fetchHotspotStatus, fetchProjectPort]);
 
     useEffect(() => {
         if (hotspot.active) {
@@ -164,7 +196,7 @@ const NetworkTab = ({ auth }) => {
         const iface = interfaces.find((i) => i.name === name);
         if (iface) {
             setForm({
-                method: iface.method === 'dhcp' ? 'dhcp' : 'static',
+                method: iface.method === 'static' ? 'static' : 'dhcp',
                 address: iface.config_address || iface.ipv4?.split('/')[0] || '',
                 prefix: iface.config_prefix ?? 24,
                 gateway: iface.config_gateway || iface.gateway || '',
@@ -179,6 +211,12 @@ const NetworkTab = ({ auth }) => {
         setSaving(ifname);
         setSaveError(null);
         setSaveSuccess(null);
+
+        const currentHost = window.location.hostname;
+        const iface = interfaces.find(i => i.name === ifname);
+        const currentIfaceIp = iface?.ipv4?.split('/')[0];
+        const isChangingOwnIp = currentHost === currentIfaceIp || currentHost === iface?.config_address;
+
         try {
             const payload = {
                 method: form.method,
@@ -197,12 +235,68 @@ const NetworkTab = ({ auth }) => {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.detail || 'فشل في تطبيق الإعدادات');
-            setSaveSuccess(ifname);
-            fetchInterfaces();
+
+            if (isChangingOwnIp) {
+                const port = window.location.port || projectPort || '8000';
+                if (form.method === 'static' && form.address) {
+                    setRedirectInfo({
+                        newIp: form.address,
+                        port,
+                        isDhcp: false,
+                    });
+                } else {
+                    setRedirectInfo({
+                        newIp: null,
+                        port,
+                        isDhcp: true,
+                    });
+                }
+            } else {
+                setSaveSuccess(ifname);
+                fetchInterfaces();
+            }
         } catch (err) {
             setSaveError(err.message);
         } finally {
             setSaving(null);
+        }
+    };
+
+    const handlePortSave = async () => {
+        const newPort = parseInt(projectPortInput, 10);
+        if (!newPort || newPort < 1 || newPort > 65535) {
+            setProjectPortError('المنفذ يجب أن يكون رقماً بين 1 و 65535');
+            return;
+        }
+        if (String(newPort) === projectPort) {
+            setProjectPortError('المنفذ الجديد مطابق للمنفذ الحالي');
+            return;
+        }
+        setProjectPortSaving(true);
+        setProjectPortError(null);
+        setProjectPortSuccess(null);
+        try {
+            const res = await fetch('/api/network/project-port', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${auth}`
+                },
+                body: JSON.stringify({ port: newPort })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || 'فشل في تغيير المنفذ');
+            const host = window.location.hostname;
+            setRedirectInfo({
+                newIp: host,
+                port: String(newPort),
+                isDhcp: false,
+                isPortChange: true,
+            });
+        } catch (err) {
+            setProjectPortError(err.message);
+        } finally {
+            setProjectPortSaving(false);
         }
     };
 
@@ -512,8 +606,18 @@ const NetworkTab = ({ auth }) => {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <Chip
                                                     size="small"
-                                                    label={iface.method === 'dhcp' ? 'DHCP' : iface.method === 'static' ? 'Static' : iface.method === 'shared' ? 'Hotspot' : '—'}
-                                                    color={iface.method === 'dhcp' ? 'success' : iface.method === 'static' ? 'primary' : iface.method === 'shared' ? 'warning' : 'default'}
+                                                    label={
+                                                        iface.method === 'dhcp' ? 'DHCP (تلقائي)' :
+                                                        iface.method === 'static' ? 'Static (يدوي)' :
+                                                        iface.method === 'shared' ? 'Hotspot' :
+                                                        '—'
+                                                    }
+                                                    color={
+                                                        iface.method === 'dhcp' ? 'success' :
+                                                        iface.method === 'static' ? 'primary' :
+                                                        iface.method === 'shared' ? 'warning' :
+                                                        'default'
+                                                    }
                                                     variant="outlined"
                                                 />
                                                 {iface.ipv4 && (
@@ -625,6 +729,127 @@ const NetworkTab = ({ auth }) => {
                     )}
                 </Grid>
             )}
+
+            {/* === Project Port Section === */}
+            <Divider sx={{ my: 3 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6">منفذ المشروع</Typography>
+            </Box>
+            <Card variant="outlined">
+                <CardContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        المنفذ الذي يعمل عليه السيرفر (الحالي: {projectPort || '...'}). تغيير المنفذ سيتطلب إعادة تشغيل الخدمة.
+                    </Typography>
+                    {projectPortError && (
+                        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setProjectPortError(null)}>
+                            {projectPortError}
+                        </Alert>
+                    )}
+                    {projectPortSuccess && (
+                        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setProjectPortSuccess(null)}>
+                            {projectPortSuccess}
+                        </Alert>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <TextField
+                            size="small"
+                            type="number"
+                            label="المنفذ"
+                            value={projectPortInput}
+                            onChange={(e) => setProjectPortInput(e.target.value)}
+                            inputProps={{ min: 1, max: 65535 }}
+                            sx={{ width: 150 }}
+                            disabled={projectPortLoading || projectPortSaving}
+                        />
+                        <Button
+                            variant="contained"
+                            startIcon={projectPortSaving ? <CircularProgress size={18} /> : <SaveIcon />}
+                            onClick={handlePortSave}
+                            disabled={
+                                projectPortLoading ||
+                                projectPortSaving ||
+                                !helperAvailable ||
+                                !projectPortInput ||
+                                String(projectPortInput) === projectPort
+                            }
+                        >
+                            {projectPortSaving ? 'جاري التطبيق...' : 'تغيير المنفذ'}
+                        </Button>
+                    </Box>
+                    {!helperAvailable && (
+                        <Alert severity="info" sx={{ mt: 2 }}>
+                            لتغيير المنفذ يرجى تشغيل الخدمة الوسيطة: <strong>sudo systemctl start zero-network-helper</strong>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* === IP/Port Change Redirect Dialog === */}
+            <Dialog
+                open={!!redirectInfo}
+                onClose={() => {}}
+                disableEscapeKeyDown
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { direction: 'rtl' } }}
+            >
+                <DialogTitle sx={{ fontWeight: 700 }}>
+                    {redirectInfo?.isPortChange ? 'تم تغيير منفذ المشروع' : 'تم تغيير إعدادات الشبكة'}
+                </DialogTitle>
+                <DialogContent>
+                    {redirectInfo?.isDhcp ? (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            تم التبديل إلى DHCP. سيحصل المنفذ على عنوان جديد تلقائياً.
+                            يرجى معرفة العنوان الجديد من الراوتر أو من السيرفر مباشرة ثم فتح الصفحة على العنوان الجديد.
+                        </Alert>
+                    ) : (
+                        <>
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                {redirectInfo?.isPortChange
+                                    ? `تم تغيير المنفذ. سيتم إعادة تشغيل الخدمة خلال ثوانٍ.`
+                                    : 'تم تطبيق الإعدادات بنجاح.'}
+                            </Alert>
+                            <Typography variant="body1" sx={{ mb: 2 }}>
+                                {redirectInfo?.isPortChange
+                                    ? 'يرجى الانتقال إلى العنوان الجديد بعد إعادة التشغيل:'
+                                    : 'تم تغيير عنوان الواجهة التي تستخدمها حالياً. يرجى الانتقال إلى العنوان الجديد:'}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    p: 2, bgcolor: 'grey.100', borderRadius: 2,
+                                    fontFamily: 'monospace', fontSize: '1.1rem',
+                                    textAlign: 'center', fontWeight: 700,
+                                    border: '1px solid', borderColor: 'grey.300',
+                                }}
+                            >
+                                {`http://${redirectInfo?.newIp}:${redirectInfo?.port}/`}
+                            </Box>
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setRedirectInfo(null);
+                            fetchInterfaces();
+                        }}
+                    >
+                        إغلاق
+                    </Button>
+                    {!redirectInfo?.isDhcp && redirectInfo?.newIp && (
+                        <Button
+                            variant="contained"
+                            startIcon={<OpenInNewIcon />}
+                            onClick={() => {
+                                window.location.href = `http://${redirectInfo.newIp}:${redirectInfo.port}/`;
+                            }}
+                        >
+                            فتح العنوان الجديد
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

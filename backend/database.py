@@ -68,16 +68,16 @@ def create_db_and_tables():
             r = conn.execute(text("PRAGMA table_info(sitesettings)"))
             cols = [row[1] for row in r.fetchall()]
             if "hidden_app_buttons" not in cols:
-                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN hidden_app_buttons VARCHAR DEFAULT '[]'"))
+                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN hidden_app_buttons VARCHAR DEFAULT '[\"التطبيقات\",\"المواقع\",\"الألعاب\",\"الموسيقى\",\"الصور\",\"الفيديو\",\"التعليم\",\"العمل\"]'"))
                 conn.commit()
             if "marquee_enabled" not in cols:
-                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_enabled BOOLEAN DEFAULT 0"))
+                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_enabled BOOLEAN DEFAULT 1"))
                 conn.commit()
             if "marquee_text" not in cols:
-                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_text VARCHAR DEFAULT ''"))
+                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_text VARCHAR DEFAULT 'هنا تبدا الحكاية التي ستخلد في ذاكرتكم, استكشف عالمنا الرقمي المجاني'"))
                 conn.commit()
             if "marquee_font_size" not in cols:
-                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_font_size INTEGER DEFAULT 18"))
+                conn.execute(text("ALTER TABLE sitesettings ADD COLUMN marquee_font_size INTEGER DEFAULT 35"))
                 conn.commit()
             if "hotspot_auto_start_disabled" not in cols:
                 conn.execute(text("ALTER TABLE sitesettings ADD COLUMN hotspot_auto_start_disabled BOOLEAN DEFAULT 0"))

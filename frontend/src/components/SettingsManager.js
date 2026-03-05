@@ -39,9 +39,9 @@ const SECTIONS = [
     { key: 'طلبات التوصيل', label: 'طلبات التوصيل', isParent: true },
 
     { key: 'الضبط', label: 'الضبط', isParent: true },
-    { key: 'الضبط > ضبط الرئيسية', label: 'ضبط الرئيسية', isChild: true },
-    { key: 'الضبط > إدارة الصلاحيات', label: 'إدارة الصلاحيات', isChild: true },
+    { key: 'الضبط > عامة', label: 'عامة', isChild: true },
     { key: 'الضبط > الشبكة', label: 'الشبكة', isChild: true },
+    { key: 'الضبط > إدارة الصلاحيات', label: 'إدارة الصلاحيات', isChild: true },
     { key: 'الضبط > التحديث', label: 'التحديث', isChild: true },
 ];
 
@@ -388,16 +388,16 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
                 onChange={(e, newValue) => setSettingsTab(newValue)}
                 sx={{ borderBottom: 1, borderColor: 'divider' }}
             >
-                <Tab label="ضبط الرئيسية" />
-                <Tab label="إدارة الصلاحيات" icon={<SecurityIcon />} iconPosition="start" />
+                <Tab label="عامة" />
                 <Tab label="الشبكة" />
+                <Tab label="إدارة الصلاحيات" />
                 <Tab label="التحديث" icon={<CloudUploadIcon />} iconPosition="start" />
             </Tabs>
 
-            {/* تاب ضبط الرئيسية */}
+            {/* تاب عامة */}
             {settingsTab === 0 && (
                 <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>ضبط الوجهة الرئيسية للمنصة</Typography>
+                    <Typography variant="h6" gutterBottom>ضبط الوجهة الرئيسية :</Typography>
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                     {success && <Alert severity="success" sx={{ mb: 2 }}>تم حفظ الإعدادات بنجاح.</Alert>}
                     <Box component="form" noValidate autoComplete="off">
@@ -456,13 +456,13 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
                             </Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>نص يتحرك أفقياً في الواجهة الأمامية</Typography>
                             <TextField label="النص المتحرك" name="marquee_text" fullWidth multiline rows={2} margin="dense" value={settings.marquee_text || ''} onChange={handleInputChange} disabled={!settings.marquee_enabled} placeholder="أدخل النص..." sx={{ mb: 2 }} />
-                            <Typography gutterBottom>حجم الخط ({settings.marquee_font_size || 18}px)</Typography>
-                            <Slider name="marquee_font_size" value={settings.marquee_font_size || 18} onChange={(e, val) => handleSliderChange('marquee_font_size', val)} step={1} marks={[{value:12,label:'12'},{value:18,label:'18'},{value:24,label:'24'},{value:32,label:'32'},{value:48,label:'48'}]} min={12} max={48} disabled={!settings.marquee_enabled} />
+                            <Typography gutterBottom>حجم الخط ({settings.marquee_font_size || 35}px)</Typography>
+                            <Slider name="marquee_font_size" value={settings.marquee_font_size || 35} onChange={(e, val) => handleSliderChange('marquee_font_size', val)} step={1} marks={[{value:12,label:'12'},{value:18,label:'18'},{value:24,label:'24'},{value:32,label:'32'},{value:35,label:'35'},{value:48,label:'48'}]} min={12} max={48} disabled={!settings.marquee_enabled} />
                             {settings.marquee_enabled && settings.marquee_text && (
                                 <Box sx={{ mt: 2, p: 2, bgcolor: '#0f172a', borderRadius: '12px', overflow: 'hidden' }}>
                                     <Typography variant="caption" sx={{ color: '#94a3b8', mb: 1, display: 'block' }}>معاينة:</Typography>
                                     <Box sx={{ overflow: 'hidden', whiteSpace: 'nowrap', '@keyframes marqueePreview': { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(100%)' } } }}>
-                                        <Typography sx={{ display: 'inline-block', color: '#e2e8f0', fontSize: `${settings.marquee_font_size || 18}px`, fontWeight: 600, animation: 'marqueePreview 8s linear infinite' }}>{settings.marquee_text}</Typography>
+                                        <Typography sx={{ display: 'inline-block', color: '#e2e8f0', fontSize: `${settings.marquee_font_size || 35}px`, fontWeight: 600, animation: 'marqueePreview 8s linear infinite' }}>{settings.marquee_text}</Typography>
                                     </Box>
                                 </Box>
                             )}
@@ -476,17 +476,12 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
             )}
 
             {/* تاب الشبكة */}
-            {settingsTab === 2 && (
+            {settingsTab === 1 && (
                 <Box sx={{ p: 3 }}><NetworkTab auth={auth} /></Box>
             )}
 
-            {/* تاب التحديث */}
-            {settingsTab === 3 && (
-                <UpdateTab auth={auth} />
-            )}
-
             {/* تاب إدارة الصلاحيات */}
-            {settingsTab === 1 && (
+            {settingsTab === 2 && (
                 <Box sx={{ p: 3 }}>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SecurityIcon color="primary" /> إدارة الصلاحيات
@@ -715,6 +710,11 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
                         </DialogActions>
                     </Dialog>
                 </Box>
+            )}
+
+            {/* تاب التحديث */}
+            {settingsTab === 3 && (
+                <UpdateTab auth={auth} />
             )}
         </Paper>
     );

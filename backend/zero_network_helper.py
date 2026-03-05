@@ -37,14 +37,81 @@ def _run(cmd, timeout=15):
 
 
 def _get_conn_name(ifname):
+    """البحث عن اسم اتصال NM للواجهة مع دعم أسماء netplan والمكررات."""
     ok, out, _ = _run([NMCLI, "-t", "-f", "NAME,DEVICE", "connection", "show"])
-    if not ok or not out:
-        return None
-    for line in out.splitlines():
-        parts = line.split(":")
-        if len(parts) >= 2 and parts[1].strip() == ifname:
-            return parts[0].strip()
+    if ok and out:
+        for line in out.splitlines():
+            idx = line.rfind(":")
+            if idx > 0:
+                name = line[:idx].strip()
+                device = line[idx + 1:].strip()
+                if device == ifname:
+                    return name
+    for candidate in [f"netplan-{ifname}", f"Auto-{ifname}", ifname]:
+        ok2, _, _ = _run([NMCLI, "connection", "show", candidate])
+        if ok2:
+            return candidate
     return None
+
+
+def _ensure_device_managed(ifname):
+    """التأكد أن الجهاز مُدار بواسطة NM، وإصلاحه إن لم يكن."""
+    ok, out, _ = _run([NMCLI, "-t", "-f", "DEVICE,STATE", "device", "status"])
+    if not ok:
+        return
+    for line in out.splitlines():
+        idx = line.rfind(":")
+        if idx <= 0:
+            continue
+        dev = line[:idx].strip()
+        state = line[idx + 1:].strip().lower()
+        if dev == ifname and "unmanaged" in state:
+            _run([NMCLI, "device", "set", ifname, "managed", "yes"], timeout=10)
+            import time
+            time.sleep(2)
+            return
+
+
+def _cleanup_duplicate_connections(ifname, keep_conn=None):
+    """حذف الاتصالات المكررة لنفس الواجهة مع الإبقاء على الاتصال النشط."""
+    ok, out, _ = _run([NMCLI, "-t", "-f", "NAME,UUID,DEVICE", "connection", "show"])
+    if not ok or not out:
+        return
+    seen = False
+    for line in out.splitlines():
+        parts = line.rsplit(":", 2)
+        if len(parts) < 3:
+            continue
+        name = parts[0].strip()
+        uuid = parts[1].strip()
+        device = parts[2].strip()
+        is_for_iface = (device == ifname) or (name == ifname) or (name == f"netplan-{ifname}")
+        if not is_for_iface:
+            continue
+        if keep_conn and name == keep_conn:
+            seen = True
+            continue
+        if not seen and device == ifname:
+            seen = True
+            continue
+        _run([NMCLI, "connection", "delete", "uuid", uuid], timeout=5)
+
+
+def _get_or_create_conn(ifname):
+    """الحصول على اتصال موجود أو إنشاء واحد جديد للواجهة."""
+    _ensure_device_managed(ifname)
+    conn_name = _get_conn_name(ifname)
+    if conn_name:
+        return conn_name, None
+    ok_new, out_new, err_new = _run([
+        NMCLI, "connection", "add",
+        "type", "ethernet",
+        "con-name", ifname,
+        "ifname", ifname,
+    ])
+    if not ok_new:
+        return None, out_new or err_new or "فشل إنشاء الاتصال"
+    return ifname, None
 
 
 def cmd_set_static(payload):
@@ -55,31 +122,43 @@ def cmd_set_static(payload):
     dns = (payload.get("dns") or "").strip() or None
     if not ifname or not address:
         return {"ok": False, "message": "ifname و address مطلوبان"}
-    conn_name = _get_conn_name(ifname)
+
+    conn_name, err = _get_or_create_conn(ifname)
     if not conn_name:
-        ok_new, out_new, err_new = _run([
-            NMCLI, "connection", "add",
-            "type", "ethernet",
-            "con-name", ifname,
-            "ifname", ifname,
-        ])
-        if not ok_new:
-            return {"ok": False, "message": out_new or err_new or "فشل إنشاء الاتصال"}
-        conn_name = ifname
+        return {"ok": False, "message": err}
+
     addr_str = f"{address}/{prefix}"
-    cmds = [
-        [NMCLI, "connection", "modify", conn_name, "ipv4.method", "manual"],
-        [NMCLI, "connection", "modify", conn_name, "ipv4.addresses", addr_str],
+    modify_args = [
+        NMCLI, "connection", "modify", conn_name,
+        "ipv4.addresses", addr_str,
+        "ipv4.method", "manual",
     ]
     if gateway:
-        cmds.append([NMCLI, "connection", "modify", conn_name, "ipv4.gateway", gateway])
+        modify_args += ["ipv4.gateway", gateway]
+    else:
+        modify_args += ["ipv4.gateway", ""]
     if dns:
-        cmds.append([NMCLI, "connection", "modify", conn_name, "ipv4.dns", dns])
-    cmds.append([NMCLI, "connection", "up", conn_name])
-    for cmd in cmds:
-        ok, out, err = _run(cmd)
-        if not ok:
-            return {"ok": False, "message": out or err or "فشل تنفيذ الأمر"}
+        modify_args += ["ipv4.dns", dns]
+    else:
+        modify_args += ["ipv4.dns", ""]
+    ok, out, err = _run(modify_args)
+    if not ok:
+        ok1, out1, err1 = _run([NMCLI, "connection", "modify", conn_name,
+                                "ipv4.addresses", addr_str])
+        if not ok1:
+            return {"ok": False, "message": out1 or err1 or "فشل تعيين العنوان"}
+        ok2, out2, err2 = _run([NMCLI, "connection", "modify", conn_name,
+                                "ipv4.method", "manual"])
+        if not ok2:
+            return {"ok": False, "message": out2 or err2 or "فشل تعيين الطريقة"}
+        if gateway:
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.gateway", gateway])
+        if dns:
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.dns", dns])
+    ok, out, err = _run([NMCLI, "connection", "up", conn_name])
+    if not ok:
+        return {"ok": False, "message": out or err or "فشل تفعيل الاتصال"}
+    _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
     return {"ok": True, "message": "تم تطبيق الإعدادات بنجاح"}
 
 
@@ -87,23 +166,26 @@ def cmd_set_dhcp(payload):
     ifname = (payload.get("ifname") or "").strip()
     if not ifname:
         return {"ok": False, "message": "ifname مطلوب"}
-    conn_name = _get_conn_name(ifname)
+
+    conn_name, err = _get_or_create_conn(ifname)
     if not conn_name:
-        ok_new, out_new, err_new = _run([
-            NMCLI, "connection", "add",
-            "type", "ethernet",
-            "con-name", ifname,
-            "ifname", ifname,
-        ])
-        if not ok_new:
-            return {"ok": False, "message": out_new or err_new or "فشل إنشاء الاتصال"}
-        conn_name = ifname
-    ok, out, err = _run([NMCLI, "connection", "modify", conn_name, "ipv4.method", "auto"])
+        return {"ok": False, "message": err}
+
+    ok, out, err = _run([
+        NMCLI, "connection", "modify", conn_name,
+        "ipv4.method", "auto",
+        "ipv4.addresses", "",
+        "ipv4.gateway", "",
+        "ipv4.dns", "",
+    ])
     if not ok:
-        return {"ok": False, "message": out or err or "فشل تعديل الطريقة"}
+        ok, out, err = _run([NMCLI, "connection", "modify", conn_name, "ipv4.method", "auto"])
+        if not ok:
+            return {"ok": False, "message": out or err or "فشل تعديل الطريقة"}
     ok2, out2, err2 = _run([NMCLI, "connection", "up", conn_name])
     if not ok2:
         return {"ok": False, "message": out2 or err2 or "فشل تفعيل الاتصال"}
+    _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
     return {"ok": True, "message": "تم تفعيل DHCP بنجاح"}
 
 
@@ -113,6 +195,59 @@ def cmd_restart_network(_payload):
     if not ok:
         return {"ok": False, "message": out or err or "فشل إعادة تشغيل الشبكة"}
     return {"ok": True, "message": "تم إعادة تشغيل خدمة الشبكة"}
+
+
+ZERO_SERVICE_PATH = "/etc/systemd/system/zero.service"
+
+
+def cmd_get_project_port(_payload):
+    """قراءة منفذ المشروع الحالي من ملف الخدمة."""
+    import re as _re
+    try:
+        with open(ZERO_SERVICE_PATH, "r") as f:
+            content = f.read()
+        m = _re.search(r"--port\s+(\d+)", content)
+        if m:
+            return {"ok": True, "port": int(m.group(1))}
+        return {"ok": True, "port": 8000}
+    except FileNotFoundError:
+        return {"ok": True, "port": 8000}
+    except Exception as e:
+        return {"ok": False, "message": str(e), "port": 8000}
+
+
+def cmd_set_project_port(payload):
+    """تغيير منفذ المشروع في ملف الخدمة وإعادة تشغيل الخدمة."""
+    global PROJECT_PORT
+    import re as _re
+    import threading
+    new_port = payload.get("port")
+    if not new_port:
+        return {"ok": False, "message": "port مطلوب"}
+    try:
+        new_port = int(new_port)
+        if new_port < 1 or new_port > 65535:
+            return {"ok": False, "message": "المنفذ يجب أن يكون بين 1 و 65535"}
+    except (ValueError, TypeError):
+        return {"ok": False, "message": "المنفذ يجب أن يكون رقماً صحيحاً"}
+    try:
+        with open(ZERO_SERVICE_PATH, "r") as f:
+            content = f.read()
+        new_content = _re.sub(r"--port\s+\d+", f"--port {new_port}", content)
+        if new_content == content and f"--port {new_port}" not in content:
+            return {"ok": False, "message": "لم يتم العثور على --port في ملف الخدمة"}
+        with open(ZERO_SERVICE_PATH, "w") as f:
+            f.write(new_content)
+        PROJECT_PORT = new_port
+        _run(["systemctl", "daemon-reload"], timeout=10)
+        def _delayed_restart():
+            import time
+            time.sleep(3)
+            _run(["systemctl", "restart", "zero"], timeout=30)
+        threading.Thread(target=_delayed_restart, daemon=True).start()
+        return {"ok": True, "message": f"تم تغيير المنفذ إلى {new_port}. سيتم إعادة تشغيل الخدمة خلال ثوانٍ.", "port": new_port}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
 
 
 # اسم اتصال الهوتسبوت الافتراضي (ZeroLAG)
@@ -393,6 +528,10 @@ def handle_request(data):
         out = cmd_wifi_hotspot_status(payload)
     elif cmd == "wifi_hotspot_clients":
         out = cmd_wifi_hotspot_clients(payload)
+    elif cmd == "get_project_port":
+        out = cmd_get_project_port(payload)
+    elif cmd == "set_project_port":
+        out = cmd_set_project_port(payload)
     else:
         out = {"ok": False, "message": f"أمر غير معروف: {cmd}"}
     return json.dumps(out, ensure_ascii=False)

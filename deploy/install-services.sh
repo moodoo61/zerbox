@@ -1,3 +1,4 @@
+
 #!/bin/bash
 # تثبيت وحدات systemd (zero و zero-network-helper) مع مسار المشروع الحالي
 # الاستخدام: من جذر المشروع: ./deploy/install-services.sh
@@ -27,9 +28,14 @@ done
 
 sudo systemctl daemon-reload
 echo ""
-echo "تم التثبيت. لتفعيل التشغيل التلقائي:"
-echo "  sudo systemctl enable zero"
-echo "  sudo systemctl enable zero-network-helper"
-echo "  sudo systemctl start zero"
-echo "  sudo systemctl start zero-network-helper"
+echo "تفعيل التشغيل التلقائي وتشغيل الخدمات..."
+for name in zero zero-network-helper; do
+  if [ -f "/etc/systemd/system/${name}.service" ]; then
+    if sudo systemctl enable "$name" 2>/dev/null; then echo "  تم تفعيل: $name"; else echo "  تحذير: فشل enable $name"; fi
+    if sudo systemctl start "$name" 2>/dev/null; then echo "  تم تشغيل: $name"; else echo "  تحذير: فشل start $name"; fi
+  fi
+done
+echo ""
+echo "تم التثبيت والتفعيل."
+echo "  للتحقق: sudo systemctl status zero zero-network-helper"
 echo "=========================================="

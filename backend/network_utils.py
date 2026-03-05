@@ -165,24 +165,36 @@ def get_connection_info(ifname):
     الحصول على إعدادات الاتصال (DHCP/Static) من NetworkManager إن وُجد.
     """
     result = {"method": "unknown", "address": None, "prefix": 24, "gateway": None, "dns": None, "connection_id": None}
-    ok, out, _ = _run(["nmcli", "-t", "-f", "NAME,DEVICE,TYPE", "connection", "show", "--active"])
+    ok, out, _ = _run(["nmcli", "-t", "-f", "NAME,DEVICE", "connection", "show", "--active"])
     if not ok:
         return result
     for line in out.splitlines():
         if not line:
             continue
-        parts = line.split(":")
-        if len(parts) >= 2 and parts[1] == ifname:
-            result["connection_id"] = parts[0]
-            break
+        idx = line.rfind(":")
+        if idx > 0:
+            name = line[:idx].strip()
+            device = line[idx + 1:].strip()
+            if device == ifname:
+                result["connection_id"] = name
+                break
     if not result["connection_id"]:
         ok2, out2, _ = _run(["nmcli", "-t", "-f", "NAME,DEVICE", "connection", "show"])
         if ok2:
             for line in out2.splitlines():
-                parts = line.split(":")
-                if len(parts) >= 2 and parts[1] == ifname:
-                    result["connection_id"] = parts[0]
-                    break
+                idx = line.rfind(":")
+                if idx > 0:
+                    name = line[:idx].strip()
+                    device = line[idx + 1:].strip()
+                    if device == ifname:
+                        result["connection_id"] = name
+                        break
+    if not result["connection_id"]:
+        for candidate in [f"netplan-{ifname}", f"Auto-{ifname}", ifname]:
+            ok3, _, _ = _run(["nmcli", "connection", "show", candidate])
+            if ok3:
+                result["connection_id"] = candidate
+                break
     cid = result["connection_id"]
     if not cid:
         return result
@@ -195,7 +207,14 @@ def get_connection_info(ifname):
         key, _, val = line.partition(":")
         val = (val or "").strip()
         if key == "ipv4.method":
-            result["method"] = "dhcp" if val in ("auto", "dhcp") else "static"
+            if val in ("auto", "dhcp"):
+                result["method"] = "dhcp"
+            elif val == "shared":
+                result["method"] = "shared"
+            elif val == "manual":
+                result["method"] = "static"
+            else:
+                result["method"] = val or "unknown"
         elif key == "ipv4.addresses" and val:
             # قد يكون "x.x.x.x/24" أو قائمة
             part = val.split(",")[0].strip()
@@ -303,6 +322,24 @@ def wifi_hotspot_clients():
         return data
     except (socket.error, OSError, json.JSONDecodeError):
         return {"ok": False, "clients": [], "count": 0}
+
+
+def get_project_port():
+    """قراءة منفذ المشروع الحالي من ملف الخدمة."""
+    try:
+        with open("/etc/systemd/system/zero.service", "r") as f:
+            content = f.read()
+        m = re.search(r"--port\s+(\d+)", content)
+        if m:
+            return int(m.group(1))
+    except (FileNotFoundError, PermissionError):
+        pass
+    return 8000
+
+
+def set_project_port(port):
+    """تغيير منفذ المشروع عبر الخدمة الوسيطة."""
+    return _call_helper("set_project_port", {"port": port})
 
 
 def nmcli_available():

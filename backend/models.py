@@ -67,10 +67,10 @@ class SiteSettingsBase(SQLModel):
     header_background_image_url: Optional[str] = None
     header_color_opacity: float = 1.0 # 0.0 to 1.0
     home_delivery_enabled: bool = False  # تفعيل/تعطيل ميزة طلب التوصيل للمنزل
-    hidden_app_buttons: str = "[]"  # JSON array لأسماء أزرار التطبيقات المخفية
-    marquee_enabled: bool = False  # تفعيل النص المتحرك
-    marquee_text: str = ""  # النص المتحرك
-    marquee_font_size: int = 18  # حجم خط النص المتحرك
+    hidden_app_buttons: str = '["التطبيقات","المواقع","الألعاب","الموسيقى","الصور","الفيديو","التعليم","العمل"]'  # JSON: افتراضي إخفاء الجميع
+    marquee_enabled: bool = True  # تفعيل النص المتحرك (افتراضي مفعل)
+    marquee_text: str = "هنا تبدا الحكاية التي ستخلد في ذاكرتكم, استكشف عالمنا الرقمي المجاني"  # النص المتحرك
+    marquee_font_size: int = 35  # حجم خط النص المتحرك
     hotspot_auto_start_disabled: bool = False  # إن كان True فلا نفعّل الهوتسبوت تلقائياً عند بدء التشغيل (تعطيل من المستخدم)
 
 
