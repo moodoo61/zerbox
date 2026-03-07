@@ -1,4 +1,5 @@
 
+
 #!/bin/bash
 # تثبيت وحدات systemd (zero و zero-network-helper) مع مسار المشروع الحالي
 # + إصلاح netplan لاستخدام NetworkManager (مطلوب لإدارة الشبكة من الواجهة)
@@ -19,7 +20,8 @@ echo ""
 echo "فحص إعدادات الشبكة (netplan / NetworkManager)..."
 
 NM_RENDERER_OK=false
-for f in /etc/netplan/*.yaml 2>/dev/null; do
+shopt -s nullglob
+for f in /etc/netplan/*.yaml; do
   [ -f "$f" ] || continue
   if grep -q "renderer: NetworkManager" "$f" 2>/dev/null; then
     NM_RENDERER_OK=true
