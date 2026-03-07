@@ -20,6 +20,7 @@ NMCLI = os.environ.get("NMCLI", "/usr/bin/nmcli")
 CAPTIVE_PORTAL_CONF = "/etc/NetworkManager/dnsmasq-shared.d/captive-portal.conf"
 IPTABLES = "/usr/sbin/iptables"
 PROJECT_PORT = 8000
+NETPLAN_DIR = "/etc/netplan"
 
 
 def _run(cmd, timeout=15):
@@ -34,6 +35,106 @@ def _run(cmd, timeout=15):
         return r.returncode == 0, (r.stdout or "").strip(), (r.stderr or "").strip()
     except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
         return False, "", str(e)
+
+
+def _fix_netplan_for_nm():
+    """إصلاح netplan لاستخدام NetworkManager كمدير. يُستدعى تلقائياً عند اكتشاف واجهة unmanaged."""
+    import glob as _glob
+
+    has_nm = False
+    for f in sorted(_glob.glob(os.path.join(NETPLAN_DIR, "*.yaml"))):
+        try:
+            with open(f, "r") as fh:
+                if "renderer: NetworkManager" in fh.read():
+                    has_nm = True
+                    break
+        except (IOError, OSError):
+            continue
+    if has_nm:
+        return False
+
+    os.makedirs("/etc/cloud/cloud.cfg.d", exist_ok=True)
+    try:
+        with open("/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg", "w") as f:
+            f.write("network: {config: disabled}\n")
+    except (IOError, OSError):
+        pass
+
+    for f in _glob.glob(os.path.join(NETPLAN_DIR, "*.yaml")):
+        try:
+            os.remove(f)
+        except (IOError, OSError):
+            pass
+
+    eth_ifaces = []
+    try:
+        for iface in os.listdir("/sys/class/net/"):
+            if iface == "lo":
+                continue
+            if iface.startswith(("wl", "ppp", "tun", "wg", "veth", "docker", "br-")):
+                continue
+            if os.path.isdir(f"/sys/class/net/{iface}/wireless"):
+                continue
+            eth_ifaces.append(iface)
+    except (IOError, OSError):
+        pass
+
+    lines = [
+        "network:",
+        "    version: 2",
+        "    renderer: NetworkManager",
+        "    ethernets:",
+    ]
+    if eth_ifaces:
+        for iface in sorted(eth_ifaces):
+            lines.append(f"        {iface}:")
+            lines.append("            dhcp4: true")
+    else:
+        lines.append("        {}")
+
+    os.makedirs(NETPLAN_DIR, exist_ok=True)
+    np_file = os.path.join(NETPLAN_DIR, "01-network-manager.yaml")
+    with open(np_file, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(np_file, 0o600)
+
+    _run(["netplan", "generate"], timeout=10)
+    _run(["netplan", "apply"], timeout=30)
+    import time
+    time.sleep(3)
+    return True
+
+
+def _update_netplan_interface(ifname, method="dhcp", address=None, prefix=24, gateway=None, dns=None):
+    """تحديث ملف netplan للواجهة لضمان استمرار الإعدادات بعد إعادة التشغيل."""
+    import glob as _glob
+
+    np_file = os.path.join(NETPLAN_DIR, f"90-zero-{ifname}.yaml")
+
+    lines = ["network:", "    ethernets:", f"        {ifname}:"]
+    if method == "dhcp":
+        lines.append("            dhcp4: true")
+    else:
+        lines.append("            dhcp4: false")
+        lines.append("            addresses:")
+        lines.append(f"                - {address}/{prefix}")
+        if gateway:
+            lines.append("            routes:")
+            lines.append("                - to: default")
+            lines.append(f"                  via: {gateway}")
+        if dns:
+            dns_list = [d.strip() for d in dns.replace(",", " ").split() if d.strip()]
+            if dns_list:
+                lines.append("            nameservers:")
+                lines.append("                addresses:")
+                for d in dns_list:
+                    lines.append(f"                    - {d}")
+
+    os.makedirs(NETPLAN_DIR, exist_ok=True)
+    with open(np_file, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(np_file, 0o600)
+    _run(["netplan", "generate"], timeout=10)
 
 
 def _get_conn_name(ifname):
@@ -55,10 +156,11 @@ def _get_conn_name(ifname):
 
 
 def _ensure_device_managed(ifname):
-    """التأكد أن الجهاز مُدار بواسطة NM، وإصلاحه إن لم يكن."""
+    """التأكد أن الجهاز مُدار بواسطة NM. يصلح netplan تلقائياً إن لم يكن مُداراً."""
     ok, out, _ = _run([NMCLI, "-t", "-f", "DEVICE,STATE", "device", "status"])
     if not ok:
         return
+    is_unmanaged = False
     for line in out.splitlines():
         idx = line.rfind(":")
         if idx <= 0:
@@ -66,10 +168,28 @@ def _ensure_device_managed(ifname):
         dev = line[:idx].strip()
         state = line[idx + 1:].strip().lower()
         if dev == ifname and "unmanaged" in state:
-            _run([NMCLI, "device", "set", ifname, "managed", "yes"], timeout=10)
-            import time
-            time.sleep(2)
-            return
+            is_unmanaged = True
+            break
+    if not is_unmanaged:
+        return
+
+    _run([NMCLI, "device", "set", ifname, "managed", "yes"], timeout=10)
+    import time
+    time.sleep(2)
+
+    ok2, out2, _ = _run([NMCLI, "-t", "-f", "DEVICE,STATE", "device", "status"])
+    if ok2:
+        for line in out2.splitlines():
+            idx = line.rfind(":")
+            if idx <= 0:
+                continue
+            dev = line[:idx].strip()
+            state = line[idx + 1:].strip().lower()
+            if dev == ifname and "unmanaged" not in state:
+                return
+
+    if _fix_netplan_for_nm():
+        time.sleep(2)
 
 
 def _cleanup_duplicate_connections(ifname, keep_conn=None):
@@ -159,6 +279,7 @@ def cmd_set_static(payload):
     if not ok:
         return {"ok": False, "message": out or err or "فشل تفعيل الاتصال"}
     _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
+    _update_netplan_interface(ifname, method="static", address=address, prefix=prefix, gateway=gateway, dns=dns)
     return {"ok": True, "message": "تم تطبيق الإعدادات بنجاح"}
 
 
@@ -186,6 +307,7 @@ def cmd_set_dhcp(payload):
     if not ok2:
         return {"ok": False, "message": out2 or err2 or "فشل تفعيل الاتصال"}
     _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
+    _update_netplan_interface(ifname, method="dhcp")
     return {"ok": True, "message": "تم تفعيل DHCP بنجاح"}
 
 
