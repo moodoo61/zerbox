@@ -1831,7 +1831,7 @@ def get_today_matches(db: Session = Depends(get_session)):
     # جلب البيانات من الخادم الخارجي
     try:
         response = _requests.get(
-            "https://to.zerolag.live/api/matches/today/",
+            "https://news.zerolagvpn.com/api/matches/today/",
             timeout=15,
             headers={"Content-Type": "application/json"}
         )
