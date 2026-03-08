@@ -248,9 +248,12 @@ def set_connection_static(ifname, address, prefix=24, gateway=None, dns=None, co
     })
 
 
-def set_connection_dhcp(ifname, connection_id=None):
+def set_connection_dhcp(ifname, connection_id=None, dns=None):
     """تفعيل DHCP للواجهة عبر الخدمة الوسيطة zero-network-helper."""
-    return _call_helper("set_dhcp", {"ifname": ifname})
+    payload = {"ifname": ifname}
+    if dns:
+        payload["dns"] = dns
+    return _call_helper("set_dhcp", payload)
 
 
 def wifi_hotspot_start(ifname, ssid="ZeroLAG", gateway="192.168.60.1/24"):

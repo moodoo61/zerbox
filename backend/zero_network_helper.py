@@ -106,14 +106,21 @@ def _fix_netplan_for_nm():
 
 
 def _update_netplan_interface(ifname, method="dhcp", address=None, prefix=24, gateway=None, dns=None):
-    """تحديث ملف netplan للواجهة لضمان استمرار الإعدادات بعد إعادة التشغيل."""
-    import glob as _glob
+    """تحديث ملف netplan للواجهة لضمان استمرار الإعدادات بعد إعادة التشغيل.
+    لا يستدعي netplan generate/apply — الملف للحفظ فقط، التغييرات الفورية تتم عبر nmcli."""
 
     np_file = os.path.join(NETPLAN_DIR, f"90-zero-{ifname}.yaml")
 
-    lines = ["network:", "    ethernets:", f"        {ifname}:"]
+    lines = ["network:", "    version: 2", "    renderer: NetworkManager", "    ethernets:", f"        {ifname}:"]
     if method == "dhcp":
         lines.append("            dhcp4: true")
+        if dns:
+            dns_list = [d.strip() for d in dns.replace(",", " ").split() if d.strip()]
+            if dns_list:
+                lines.append("            nameservers:")
+                lines.append("                addresses:")
+                for d in dns_list:
+                    lines.append(f"                    - {d}")
     else:
         lines.append("            dhcp4: false")
         lines.append("            addresses:")
@@ -133,8 +140,10 @@ def _update_netplan_interface(ifname, method="dhcp", address=None, prefix=24, ga
     os.makedirs(NETPLAN_DIR, exist_ok=True)
     with open(np_file, "w") as f:
         f.write("\n".join(lines) + "\n")
-    os.chmod(np_file, 0o600)
-    _run(["netplan", "generate"], timeout=10)
+    try:
+        os.chmod(np_file, 0o600)
+    except OSError:
+        pass
 
 
 def _get_conn_name(ifname):
@@ -234,12 +243,71 @@ def _get_or_create_conn(ifname):
     return ifname, None
 
 
+def _normalize_dns(dns_str):
+    """تطبيع قيمة DNS: تحويل الفواصل/المسافات إلى مسافات وإزالة القيم الفارغة."""
+    if not dns_str:
+        return None
+    servers = [s.strip() for s in dns_str.replace(",", " ").split() if s.strip()]
+    return " ".join(servers) if servers else None
+
+
+def _update_resolv_conf(dns_str=None, ifname=None):
+    """تحديث /etc/resolv.conf مباشرة بعد تغيير DNS.
+    إذا لم يُحدد dns_str، يقرأ DNS من NM للواجهة المحددة (مفيد لـ DHCP)."""
+    servers = []
+    if dns_str:
+        servers = [s.strip() for s in dns_str.replace(",", " ").split() if s.strip()]
+    if not servers and ifname:
+        ok, out, _ = _run([NMCLI, "-t", "-f", "IP4.DNS", "device", "show", ifname])
+        if ok and out:
+            for line in out.splitlines():
+                if "DNS" in line and ":" in line:
+                    val = line.split(":", 1)[1].strip()
+                    if val:
+                        servers.append(val)
+    if not servers:
+        servers = ["8.8.8.8", "1.1.1.1"]
+    try:
+        with open("/etc/resolv.conf", "w") as f:
+            for s in servers:
+                f.write(f"nameserver {s}\n")
+    except (IOError, OSError):
+        pass
+    _ensure_hosts_file()
+
+
+def _ensure_hosts_file():
+    """التأكد من أن /etc/hosts يحتوي على localhost واسم الجهاز."""
+    try:
+        hostname = ""
+        ok, out, _ = _run(["hostname"], timeout=3)
+        if ok and out:
+            hostname = out.strip()
+        with open("/etc/hosts", "r") as f:
+            content = f.read()
+        changed = False
+        if "127.0.0.1" not in content or "localhost" not in content:
+            content = "127.0.0.1 localhost\n" + content
+            changed = True
+        if hostname and hostname not in content:
+            content = content.rstrip("\n") + f"\n127.0.1.1 {hostname}\n"
+            changed = True
+        if f"#127.0.1.1 {hostname}" in content:
+            content = content.replace(f"#127.0.1.1 {hostname}", f"127.0.1.1 {hostname}")
+            changed = True
+        if changed:
+            with open("/etc/hosts", "w") as f:
+                f.write(content)
+    except (IOError, OSError):
+        pass
+
+
 def cmd_set_static(payload):
     ifname = (payload.get("ifname") or "").strip()
     address = (payload.get("address") or "").strip()
     prefix = int(payload.get("prefix") or 24)
     gateway = (payload.get("gateway") or "").strip() or None
-    dns = (payload.get("dns") or "").strip() or None
+    dns = _normalize_dns((payload.get("dns") or "").strip())
     if not ifname or not address:
         return {"ok": False, "message": "ifname و address مطلوبان"}
 
@@ -275,16 +343,18 @@ def cmd_set_static(payload):
             _run([NMCLI, "connection", "modify", conn_name, "ipv4.gateway", gateway])
         if dns:
             _run([NMCLI, "connection", "modify", conn_name, "ipv4.dns", dns])
-    ok, out, err = _run([NMCLI, "connection", "up", conn_name])
+    ok, out, err = _run([NMCLI, "connection", "up", conn_name], timeout=30)
     if not ok:
         return {"ok": False, "message": out or err or "فشل تفعيل الاتصال"}
     _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
     _update_netplan_interface(ifname, method="static", address=address, prefix=prefix, gateway=gateway, dns=dns)
+    _update_resolv_conf(dns_str=dns, ifname=ifname)
     return {"ok": True, "message": "تم تطبيق الإعدادات بنجاح"}
 
 
 def cmd_set_dhcp(payload):
     ifname = (payload.get("ifname") or "").strip()
+    dns = _normalize_dns((payload.get("dns") or "").strip())
     if not ifname:
         return {"ok": False, "message": "ifname مطلوب"}
 
@@ -292,22 +362,38 @@ def cmd_set_dhcp(payload):
     if not conn_name:
         return {"ok": False, "message": err}
 
-    ok, out, err = _run([
+    modify_args = [
         NMCLI, "connection", "modify", conn_name,
         "ipv4.method", "auto",
         "ipv4.addresses", "",
         "ipv4.gateway", "",
-        "ipv4.dns", "",
-    ])
+    ]
+    if dns:
+        modify_args += ["ipv4.dns", dns, "ipv4.ignore-auto-dns", "yes"]
+    else:
+        modify_args += ["ipv4.dns", "", "ipv4.ignore-auto-dns", "no"]
+
+    ok, out, err = _run(modify_args)
     if not ok:
         ok, out, err = _run([NMCLI, "connection", "modify", conn_name, "ipv4.method", "auto"])
         if not ok:
             return {"ok": False, "message": out or err or "فشل تعديل الطريقة"}
-    ok2, out2, err2 = _run([NMCLI, "connection", "up", conn_name])
+        _run([NMCLI, "connection", "modify", conn_name, "ipv4.addresses", ""])
+        _run([NMCLI, "connection", "modify", conn_name, "ipv4.gateway", ""])
+        if dns:
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.dns", dns])
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.ignore-auto-dns", "yes"])
+        else:
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.dns", ""])
+            _run([NMCLI, "connection", "modify", conn_name, "ipv4.ignore-auto-dns", "no"])
+    ok2, out2, err2 = _run([NMCLI, "connection", "up", conn_name], timeout=30)
     if not ok2:
         return {"ok": False, "message": out2 or err2 or "فشل تفعيل الاتصال"}
     _cleanup_duplicate_connections(ifname, keep_conn=conn_name)
-    _update_netplan_interface(ifname, method="dhcp")
+    _update_netplan_interface(ifname, method="dhcp", dns=dns)
+    import time as _time
+    _time.sleep(2)
+    _update_resolv_conf(dns_str=dns, ifname=ifname)
     return {"ok": True, "message": "تم تفعيل DHCP بنجاح"}
 
 

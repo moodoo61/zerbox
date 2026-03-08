@@ -1146,7 +1146,10 @@ def update_network_interface(
     if not any(i["name"] == ifname for i in ifaces):
         raise HTTPException(status_code=404, detail="الواجهة غير موجودة")
     if body.method == "dhcp":
-        ok, msg = network_utils.set_connection_dhcp(ifname)
+        ok, msg = network_utils.set_connection_dhcp(
+            ifname,
+            dns=body.dns.strip() if body.dns else None,
+        )
     else:
         if not body.address or not body.address.strip():
             raise HTTPException(status_code=400, detail="العنوان مطلوب في وضع Static")
@@ -1159,7 +1162,21 @@ def update_network_interface(
         )
     if not ok:
         raise HTTPException(status_code=400, detail=msg)
-    return {"status": "ok", "message": msg}
+    import time as _time
+    _time.sleep(1)
+    new_ifaces = network_utils.get_interfaces()
+    new_iface = next((i for i in new_ifaces if i["name"] == ifname), None)
+    new_ip = None
+    if new_iface and new_iface.get("ipv4"):
+        new_ip = new_iface["ipv4"].split("/")[0]
+    new_info = network_utils.get_connection_info(ifname)
+    return {
+        "status": "ok",
+        "message": msg,
+        "new_ip": new_ip,
+        "new_method": new_info.get("method", body.method),
+        "new_dns": new_info.get("dns"),
+    }
 
 
 @app.get("/api/network/wifi-hotspot", tags=["Network"])

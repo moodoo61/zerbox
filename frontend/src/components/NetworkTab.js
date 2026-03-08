@@ -215,7 +215,8 @@ const NetworkTab = ({ auth }) => {
         const currentHost = window.location.hostname;
         const iface = interfaces.find(i => i.name === ifname);
         const currentIfaceIp = iface?.ipv4?.split('/')[0];
-        const isChangingOwnIp = currentHost === currentIfaceIp || currentHost === iface?.config_address;
+        const isOnThisIface = currentHost === currentIfaceIp || currentHost === iface?.config_address;
+        const port = window.location.port || projectPort || '8000';
 
         try {
             const payload = {
@@ -223,7 +224,7 @@ const NetworkTab = ({ auth }) => {
                 address: form.method === 'static' ? form.address : null,
                 prefix: form.method === 'static' ? (form.prefix || 24) : null,
                 gateway: form.method === 'static' ? (form.gateway || null) : null,
-                dns: form.method === 'static' ? (form.dns || null) : null
+                dns: form.dns || null
             };
             const res = await fetch(`/api/network/interface/${ifname}`, {
                 method: 'PUT',
@@ -236,27 +237,34 @@ const NetworkTab = ({ auth }) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.detail || 'فشل في تطبيق الإعدادات');
 
-            if (isChangingOwnIp) {
-                const port = window.location.port || projectPort || '8000';
-                if (form.method === 'static' && form.address) {
-                    setRedirectInfo({
-                        newIp: form.address,
-                        port,
-                        isDhcp: false,
-                    });
-                } else {
-                    setRedirectInfo({
-                        newIp: null,
-                        port,
-                        isDhcp: true,
-                    });
-                }
+            const newIp = data.new_ip || (form.method === 'static' ? form.address : null);
+
+            if (isOnThisIface) {
+                setRedirectInfo({
+                    newIp,
+                    port,
+                    isDhcp: form.method === 'dhcp',
+                    ipChanged: newIp && newIp !== currentIfaceIp,
+                });
             } else {
                 setSaveSuccess(ifname);
-                fetchInterfaces();
+                setTimeout(() => fetchInterfaces(), 1500);
             }
         } catch (err) {
-            setSaveError(err.message);
+            if (isOnThisIface && (
+                (form.method === 'static' && form.address && form.address !== currentIfaceIp) ||
+                (form.method === 'dhcp' && iface?.method === 'static')
+            )) {
+                setRedirectInfo({
+                    newIp: form.method === 'static' ? form.address : null,
+                    port,
+                    isDhcp: form.method === 'dhcp',
+                    ipChanged: true,
+                    connectionLost: true,
+                });
+            } else {
+                setSaveError(err.message);
+            }
         } finally {
             setSaving(null);
         }
@@ -696,6 +704,22 @@ const NetworkTab = ({ auth }) => {
                                                             value={form.dns || ''}
                                                             onChange={(e) => setForm((f) => ({ ...f, dns: e.target.value }))}
                                                             placeholder="8.8.8.8"
+                                                            helperText="مطلوب للاتصال بالإنترنت"
+                                                        />
+                                                    </Grid>
+                                                </Grid>
+                                            )}
+
+                                            {form.method === 'dhcp' && (
+                                                <Grid container spacing={2} sx={{ mb: 2 }}>
+                                                    <Grid item xs={12} sm={6} md={4}>
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            label="DNS (اختياري — يُستبدل DNS تلقائي)"
+                                                            value={form.dns || ''}
+                                                            onChange={(e) => setForm((f) => ({ ...f, dns: e.target.value }))}
+                                                            placeholder="تلقائي من الراوتر"
                                                         />
                                                     </Grid>
                                                 </Grid>
@@ -784,7 +808,7 @@ const NetworkTab = ({ auth }) => {
                 </CardContent>
             </Card>
 
-            {/* === IP/Port Change Redirect Dialog === */}
+            {/* === Network Change Result Dialog === */}
             <Dialog
                 open={!!redirectInfo}
                 onClose={() => {}}
@@ -797,33 +821,53 @@ const NetworkTab = ({ auth }) => {
                     {redirectInfo?.isPortChange ? 'تم تغيير منفذ المشروع' : 'تم تغيير إعدادات الشبكة'}
                 </DialogTitle>
                 <DialogContent>
-                    {redirectInfo?.isDhcp ? (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                            تم التبديل إلى DHCP. سيحصل المنفذ على عنوان جديد تلقائياً.
-                            يرجى معرفة العنوان الجديد من الراوتر أو من السيرفر مباشرة ثم فتح الصفحة على العنوان الجديد.
+                    {redirectInfo?.connectionLost && redirectInfo?.isDhcp ? (
+                        <Alert severity="warning" sx={{ mb: 2 }}>
+                            تم التبديل إلى DHCP ولكن انقطع الاتصال. يرجى معرفة العنوان الجديد من الراوتر أو من السيرفر مباشرة.
                         </Alert>
+                    ) : redirectInfo?.connectionLost ? (
+                        <>
+                            <Alert severity="warning" sx={{ mb: 2 }}>
+                                تم تغيير العنوان ولكن انقطع الاتصال. يرجى الانتقال إلى العنوان الجديد:
+                            </Alert>
+                            {redirectInfo?.newIp && (
+                                <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2, fontFamily: 'monospace', fontSize: '1.1rem', textAlign: 'center', fontWeight: 700, border: '1px solid', borderColor: 'grey.300', mb: 1 }}>
+                                    {`http://${redirectInfo.newIp}:${redirectInfo.port}/`}
+                                </Box>
+                            )}
+                        </>
+                    ) : redirectInfo?.isPortChange ? (
+                        <>
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                تم تغيير المنفذ. سيتم إعادة تشغيل الخدمة خلال ثوانٍ.
+                            </Alert>
+                            <Typography variant="body1" sx={{ mb: 1 }}>يرجى الانتقال إلى العنوان الجديد بعد إعادة التشغيل:</Typography>
+                            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2, fontFamily: 'monospace', fontSize: '1.1rem', textAlign: 'center', fontWeight: 700, border: '1px solid', borderColor: 'grey.300', mb: 1 }}>
+                                {`http://${redirectInfo?.newIp}:${redirectInfo?.port}/`}
+                            </Box>
+                        </>
                     ) : (
                         <>
                             <Alert severity="success" sx={{ mb: 2 }}>
-                                {redirectInfo?.isPortChange
-                                    ? `تم تغيير المنفذ. سيتم إعادة تشغيل الخدمة خلال ثوانٍ.`
-                                    : 'تم تطبيق الإعدادات بنجاح.'}
+                                تم تطبيق الإعدادات بنجاح.
                             </Alert>
-                            <Typography variant="body1" sx={{ mb: 2 }}>
-                                {redirectInfo?.isPortChange
-                                    ? 'يرجى الانتقال إلى العنوان الجديد بعد إعادة التشغيل:'
-                                    : 'تم تغيير عنوان الواجهة التي تستخدمها حالياً. يرجى الانتقال إلى العنوان الجديد:'}
-                            </Typography>
-                            <Box
-                                sx={{
-                                    p: 2, bgcolor: 'grey.100', borderRadius: 2,
-                                    fontFamily: 'monospace', fontSize: '1.1rem',
-                                    textAlign: 'center', fontWeight: 700,
-                                    border: '1px solid', borderColor: 'grey.300',
-                                }}
-                            >
-                                {`http://${redirectInfo?.newIp}:${redirectInfo?.port}/`}
-                            </Box>
+                            {redirectInfo?.newIp && (
+                                <>
+                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                        {redirectInfo.ipChanged
+                                            ? 'العنوان الجديد للواجهة:'
+                                            : 'العنوان الحالي:'}
+                                    </Typography>
+                                    <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2, fontFamily: 'monospace', fontSize: '1.1rem', textAlign: 'center', fontWeight: 700, border: '1px solid', borderColor: 'grey.300', mb: 1 }}>
+                                        {`http://${redirectInfo.newIp}:${redirectInfo.port}/`}
+                                    </Box>
+                                </>
+                            )}
+                            {redirectInfo?.isDhcp && !redirectInfo?.newIp && (
+                                <Alert severity="info" sx={{ mb: 1 }}>
+                                    تم التبديل إلى DHCP. جاري الحصول على عنوان تلقائي...
+                                </Alert>
+                            )}
                         </>
                     )}
                 </DialogContent>
@@ -837,7 +881,7 @@ const NetworkTab = ({ auth }) => {
                     >
                         إغلاق
                     </Button>
-                    {!redirectInfo?.isDhcp && redirectInfo?.newIp && (
+                    {redirectInfo?.newIp && redirectInfo?.ipChanged && (
                         <Button
                             variant="contained"
                             startIcon={<OpenInNewIcon />}
