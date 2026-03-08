@@ -169,18 +169,11 @@
     top: 0;
     z-index: 100;
     height: var(--vp-header-h);
-    min-height: 76px;
-    background: linear-gradient(180deg,
-        rgba(80, 118, 206, 0.98) 0%,
-        rgba(41, 69, 153, 0.96) 50%,
-        rgba(35, 51, 83, 0.98) 100%);
+    min-height: 80px;
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
-    border-bottom: 2px solid rgba(59,130,246,0.2);
-    box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.06) inset,
-        0 4px 32px rgba(0,0,0,0.5),
-        0 0 0 1px rgba(59,130,246,0.08);
+ 
 }
 .vp-header__inner {
     display: flex;
@@ -198,19 +191,13 @@
 }
 .vp-header__logo {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 58px;
+    height: 58px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(145deg, var(--vp-primary) 0%, var(--vp-primary-dark) 100%);
-    box-shadow:
-        0 4px 20px rgba(59,130,246,0.35),
-        0 0 0 1px rgba(96,165,250,0.25),
-        inset 0 1px 0 rgba(255,255,255,0.12);
     flex-shrink: 0;
-    transition: transform var(--vp-t) var(--vp-ease), box-shadow var(--vp-t) var(--vp-ease);
 }
 .vp-header__logo-img {
     width: 100%;
@@ -227,18 +214,6 @@
         0 0 0 1px rgba(96,165,250,0.35),
         inset 0 1px 0 rgba(255,255,255,0.15);
 }
-.vp-header__logo::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--vp-live);
-    top: -2px;
-    left: -2px;
-    box-shadow: 0 0 0 2px rgba(15,23,42,0.9), 0 0 12px rgba(244,63,94,0.5);
-    animation: vp-live-pulse 2s ease-in-out infinite;
-}
 @keyframes vp-live-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50%      { opacity: 0.85; transform: scale(0.95); }
@@ -252,10 +227,10 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 .vp-header__desc {
-    color: var(--vp-text-muted);
+    color: var(--vp-text);
     font-size: 0.8rem;
     margin-top: 3px;
-    font-weight: 500;
+    font-weight: 800;
     letter-spacing: 0.01em;
 }
 .vp-header__live-chip {
@@ -312,6 +287,9 @@
     outline-offset: 2px;
 }
 .vp-header__btn--label {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: auto !important;
     min-width: auto !important;
     height: 40px !important;
@@ -327,6 +305,9 @@
     background: rgba(59,130,246,0.15) !important;
     box-shadow: 0 0 0 1px rgba(59,130,246,0.2) !important;
 }
+/* زر جدول المباريات: على الشاشات الكبيرة نص، على الصغيرة أيقونة كرة */
+.vp-header__btn--label .vp-header__btn-icon--matches { display: none; }
+.vp-header__btn--label .vp-header__btn-label { display: inline; }
 
 /* ================================================================
    Footer — بذات ألوان الهيدر
@@ -335,19 +316,14 @@
     margin-top: auto;
     flex-shrink: 0;
     min-height: 44px;
-    /* عكس ترتيب ألوان الهيدر: فاتح أسفل، غامق أعلى */
-    background: linear-gradient(0deg,
-        rgba(80, 118, 206, 0.98) 0%,
-        rgba(32, 54, 119, 0.96) 70%,
-        rgba(35, 51, 83, 0.98) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
-    border-top: 2px solid rgba(59,130,246,0.2);
-    box-shadow:
-        0 -1px 0 0 rgba(255,255,255,0.06) inset,
-        0 -4px 32px rgba(0,0,0,0.5),
-        0 0 0 1px rgba(59,130,246,0.08);
 }
+
 .vp-footer__inner {
     display: flex;
     align-items: center;
@@ -358,9 +334,9 @@
     margin: 0 auto;
 }
 .vp-footer__copy {
-    color: rgba(255,255,255,0.6);
+    color: rgb(255, 255, 255);
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 800;
 }
 
 /* ================================================================
@@ -389,7 +365,6 @@
 .vp-player {
     border-radius: var(--vp-radius); overflow: hidden;
     background: #000; border: 1px solid var(--vp-card-border);
-    box-shadow: var(--vp-shadow-lg);
     transition: box-shadow var(--vp-t) var(--vp-ease);
     position: relative;
 }
@@ -412,7 +387,7 @@
 }
 .vp-sidebar__header {
     padding: 18px 18px 14px;
-    background: linear-gradient(160deg, rgba(59,130,246,0.10) 0%, rgba(14,165,233,0.06) 100%);
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%);
     border-bottom: 1px solid var(--vp-border-primary);
 }
 .vp-sidebar__header-top {
@@ -482,7 +457,7 @@
 .vp-cat--active:hover { color: #fff; }
 
 /* Channel list */
-.vp-sidebar__list { padding: 10px; max-height: 62vh; overflow-y: auto; }
+.vp-sidebar__list { padding: 10px; max-height: 56vh; overflow-y: auto; }
 .vp-sidebar__list::-webkit-scrollbar { width: 5px; }
 .vp-sidebar__list::-webkit-scrollbar-track { background: transparent; }
 .vp-sidebar__list::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.15); border-radius: 5px; }
@@ -600,10 +575,12 @@
     .vp-layout--with-sidebar {
         grid-template-columns: minmax(0,1fr) 350px;
         align-items: start;
+        
     }
     .vp-sidebar {
         position: sticky;
         top: calc(var(--vp-header-h) + 20px);
+        max-height: 70vh;
     }
 }
 @media (min-width: 700px) and (max-width: 1099px) {
@@ -616,6 +593,10 @@
     .vp-header__desc   { display: none; }
     .vp-header__live-chip { padding: 4px 9px; font-size: 0.62rem; }
     .vp-header__btn    { width: 36px !important; height: 36px !important; }
+    /* زر جدول المباريات: إظهار أيقونة الكرة فقط وإخفاء النص */
+    .vp-header__btn--label .vp-header__btn-icon--matches { display: inline-flex !important; align-items: center; justify-content: center; }
+    .vp-header__btn--label .vp-header__btn-label { display: none !important; }
+    .vp-header__btn--label { padding: 0 !important; min-width: 36px !important; width: 36px !important; }
     .vp-content        { padding: 14px 12px 36px; }
     .vp-layout         { gap: 14px; }
     .vp-player         { border-radius: var(--vp-radius-md); }

@@ -56,6 +56,10 @@ const VideoPlayer = ({
 
     const stableRefs = useRef({ settings, onError, shouldAutoPlay });
     useEffect(() => { stableRefs.current = { settings, onError, shouldAutoPlay }; });
+    const isHoveringRef = useRef(false);
+    const isFullscreenRef = useRef(false);
+    useEffect(() => { isHoveringRef.current = isHovering; }, [isHovering]);
+    useEffect(() => { isFullscreenRef.current = isFullscreen; }, [isFullscreen]);
 
     // ==================== بناء رابط التشغيل ====================
     const buildPlaybackUrl = useCallback((streamData, channelName) => {
@@ -363,13 +367,17 @@ const VideoPlayer = ({
     }, [cleanup]);
 
     // ==================== إخفاء/إظهار أزرار التحكم ====================
+    const HIDE_DELAY_MS = 3500;
     const resetControlsTimer = useCallback(() => {
         setShowControlsOverlay(true);
         if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-        if (isPlaying && !isHovering) {
-            controlsTimerRef.current = setTimeout(() => setShowControlsOverlay(false), 3500);
+        if (isPlaying) {
+            controlsTimerRef.current = setTimeout(() => {
+                /* في ملء الشاشة العنصر يغطي الشاشة فلا يحدث mouseLeave أبداً، فنخفي بعد انتهاء المهلة دائماً */
+                if (isFullscreenRef.current || !isHoveringRef.current) setShowControlsOverlay(false);
+            }, HIDE_DELAY_MS);
         }
-    }, [isPlaying, isHovering]);
+    }, [isPlaying]);
 
     useEffect(() => {
         resetControlsTimer();
@@ -521,12 +529,32 @@ const VideoPlayer = ({
     return (
         <Box
             ref={containerRef}
-            onMouseEnter={() => { setIsHovering(true); setShowControlsOverlay(true); }}
-            onMouseLeave={() => { setIsHovering(false); if (isPlaying) resetControlsTimer(); }}
+            onMouseEnter={() => {
+                setIsHovering(true);
+                isHoveringRef.current = true;
+                setShowControlsOverlay(true);
+                if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+            }}
+            onMouseLeave={() => {
+                setIsHovering(false);
+                isHoveringRef.current = false;
+                if (isPlaying) {
+                    setShowControlsOverlay(true);
+                    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+                    controlsTimerRef.current = setTimeout(() => setShowControlsOverlay(false), HIDE_DELAY_MS);
+                }
+            }}
             onMouseMove={resetControlsTimer}
             onTouchStart={resetControlsTimer}
             onClick={(e) => {
-                if (e.target === videoRef.current || e.target.closest('.video-click-area')) togglePlay();
+                const isVideoArea = e.target === videoRef.current || e.target.closest('.video-click-area');
+                if (!isVideoArea) return;
+                if (!showControlsOverlay) {
+                    setShowControlsOverlay(true);
+                    resetControlsTimer();
+                    return;
+                }
+                togglePlay();
             }}
             onDoubleClick={(e) => {
                 if (e.target === videoRef.current || e.target.closest('.video-click-area')) toggleFullscreen();

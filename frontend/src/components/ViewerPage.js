@@ -7,6 +7,7 @@ import {
     Error as ErrorIcon,
     Visibility as VisibilityIcon,
     Tv as TvIcon,
+    SportsSoccer as SportsSoccerIcon,
 } from '@mui/icons-material';
 import VideoPlayer from './VideoPlayer';
 import MatchesTable from './MatchesTable';
@@ -237,7 +238,10 @@ const ViewerPage = () => {
                                 onClick={() => setMatchesOpen(true)}
                                 title="جدول المباريات"
                             >
-                                جدول المباريات
+                                <span className="vp-header__btn-icon vp-header__btn-icon--matches" aria-hidden="true">
+                                    <SportsSoccerIcon sx={{ fontSize: 18 }} />
+                                </span>
+                                <span className="vp-header__btn-label">جدول المباريات</span>
                             </button>
                         )}
                         <IconButton
