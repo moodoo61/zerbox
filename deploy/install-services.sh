@@ -76,6 +76,38 @@ else
   echo "  netplan يستخدم NetworkManager بالفعل — لا حاجة لإصلاح."
 fi
 
+# --- إصلاح DNS: جعل NM يدير resolv.conf مباشرة ---
+echo ""
+echo "إصلاح إعدادات DNS (resolv.conf)..."
+sudo mkdir -p /etc/NetworkManager/conf.d
+NM_DNS_CONF="/etc/NetworkManager/conf.d/90-zero-dns.conf"
+NM_DNS_CONTENT="[main]
+dns=default
+systemd-resolved=false"
+if [ ! -f "$NM_DNS_CONF" ] || ! grep -q "dns=default" "$NM_DNS_CONF" 2>/dev/null; then
+  echo "$NM_DNS_CONTENT" | sudo tee "$NM_DNS_CONF" > /dev/null
+  echo "  تم ضبط NM ليدير DNS مباشرة."
+fi
+
+# إزالة symlink لـ resolv.conf إن وُجد (يمنع systemd-resolved من التحكم)
+if [ -L /etc/resolv.conf ]; then
+  echo "  إزالة symlink لـ resolv.conf..."
+  sudo rm -f /etc/resolv.conf
+  echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+  echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf > /dev/null
+  echo "  تم إنشاء /etc/resolv.conf كملف عادي."
+fi
+
+# التأكد من /etc/hosts
+HOSTNAME_VAL=$(hostname 2>/dev/null)
+if [ -n "$HOSTNAME_VAL" ] && ! grep -q "$HOSTNAME_VAL" /etc/hosts 2>/dev/null; then
+  echo "127.0.1.1 $HOSTNAME_VAL" | sudo tee -a /etc/hosts > /dev/null
+  echo "  تم إضافة hostname إلى /etc/hosts."
+fi
+
+sudo systemctl restart NetworkManager 2>/dev/null || true
+sleep 2
+
 # حذف الاتصالات المكررة
 echo "  تنظيف اتصالات NM المكررة..."
 if command -v nmcli >/dev/null 2>&1; then

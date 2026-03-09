@@ -20,6 +20,7 @@ from .crud import (
 # MistServer
 from .mistserver import (
     build_source_url_with_quality,
+    restart_mistserver,
     check_mistserver_connection,
     call_mistserver_api,
     create_mistserver_stream,

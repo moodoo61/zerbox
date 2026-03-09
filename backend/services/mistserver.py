@@ -1,6 +1,8 @@
 """اتصال وإدارة MistServer (سيرفر البث المحلي)."""
 import re
 import json
+import time
+import subprocess
 import requests
 
 MISTSERVER_HOST = "localhost"
@@ -8,6 +10,30 @@ MISTSERVER_PORT = 4242
 MISTSERVER_USERNAME = "admin"
 MISTSERVER_PASSWORD = "admin"
 MISTSERVER_API_URL = f"http://{MISTSERVER_HOST}:{MISTSERVER_PORT}/api"
+
+
+def restart_mistserver(wait_seconds: int = 5) -> dict:
+    """إعادة تشغيل خدمة MistServer عبر systemd ثم انتظار بضع ثوانٍ لاستقرارها."""
+    try:
+        r = subprocess.run(
+            ["systemctl", "restart", "mistserver"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if r.returncode != 0:
+            return {
+                "status": "error",
+                "message": f"فشل systemctl restart: {r.stderr or r.stdout or 'unknown'}"
+            }
+        time.sleep(wait_seconds)
+        return {"status": "success", "message": "تم إعادة تشغيل MistServer"}
+    except FileNotFoundError:
+        return {"status": "error", "message": "systemctl غير متوفر"}
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "message": "انتهت مهلة إعادة تشغيل MistServer"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def check_mistserver_connection() -> dict:

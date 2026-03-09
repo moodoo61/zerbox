@@ -158,6 +158,20 @@ async def lifespan(app: FastAPI):
         services.initialize_default_services(db)
     log_event("تم تهيئة الخدمات الافتراضية", "info", "startup")
 
+    # إعادة تشغيل MistServer قبل جلب المفتاح لتفادي خطأ resolve localhost عند الإقلاع
+    print("🔄 إعادة تشغيل MistServer قبل مرحلة المفتاح...")
+    try:
+        restart_result = services.restart_mistserver(wait_seconds=5)
+        if restart_result["status"] == "success":
+            print("✅ تم إعادة تشغيل MistServer")
+            log_event("تم إعادة تشغيل MistServer قبل مرحلة المفتاح", "info", "mistserver")
+        else:
+            print(f"⚠️ {restart_result.get('message', 'فشل إعادة تشغيل MistServer')}")
+            log_event(restart_result.get("message", "فشل إعادة تشغيل MistServer"), "warning", "mistserver")
+    except Exception as e:
+        print(f"⚠️ استثناء عند إعادة تشغيل MistServer: {e}")
+        log_event(f"استثناء عند إعادة تشغيل MistServer: {e}", "warning", "mistserver")
+
     # توليد مفتاح جديد من الخادم عبر UUID الجهاز قبل التفعيل
     print("=" * 50)
     print("🔑 مرحلة توليد/تحديث مفتاح البث...")

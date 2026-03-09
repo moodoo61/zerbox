@@ -253,7 +253,7 @@ def _normalize_dns(dns_str):
 
 def _update_resolv_conf(dns_str=None, ifname=None):
     """تحديث /etc/resolv.conf مباشرة بعد تغيير DNS.
-    إذا لم يُحدد dns_str، يقرأ DNS من NM للواجهة المحددة (مفيد لـ DHCP)."""
+    يتعامل مع حالة كون الملف symlink لـ systemd-resolved (الحالة الافتراضية في Ubuntu)."""
     servers = []
     if dns_str:
         servers = [s.strip() for s in dns_str.replace(",", " ").split() if s.strip()]
@@ -267,13 +267,36 @@ def _update_resolv_conf(dns_str=None, ifname=None):
                         servers.append(val)
     if not servers:
         servers = ["8.8.8.8", "1.1.1.1"]
+
+    resolv_path = "/etc/resolv.conf"
     try:
-        with open("/etc/resolv.conf", "w") as f:
+        if os.path.islink(resolv_path):
+            os.unlink(resolv_path)
+        with open(resolv_path, "w") as f:
             for s in servers:
                 f.write(f"nameserver {s}\n")
     except (IOError, OSError):
         pass
+
+    _configure_nm_dns()
     _ensure_hosts_file()
+
+
+def _configure_nm_dns():
+    """ضبط NetworkManager ليدير /etc/resolv.conf مباشرة بدلاً من systemd-resolved."""
+    conf_dir = "/etc/NetworkManager/conf.d"
+    conf_file = os.path.join(conf_dir, "90-zero-dns.conf")
+    content = "[main]\ndns=default\nsystemd-resolved=false\n"
+    try:
+        os.makedirs(conf_dir, exist_ok=True)
+        if os.path.isfile(conf_file):
+            with open(conf_file, "r") as f:
+                if f.read() == content:
+                    return
+        with open(conf_file, "w") as f:
+            f.write(content)
+    except (IOError, OSError):
+        pass
 
 
 def _ensure_hosts_file():
