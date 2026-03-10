@@ -335,20 +335,11 @@ const ViewerPage = () => {
                                                 tabIndex={0}
                                                 onKeyDown={e => e.key === 'Enter' && handleChannelSelect(channel)}
                                             >
-                                                {channel.logo_url ? (
-                                                    <img
-                                                        src={channel.logo_url}
-                                                        alt={channel.name}
-                                                        className="vp-channel__avatar"
-                                                    />
-                                                ) : (
-                                                    <div
-                                                        className="vp-channel__icon"
-                                                        style={{ background: getChannelGradient(channel.id, channel.name) }}
-                                                    >
-                                                        {getChannelInitial(channel.name)}
-                                                    </div>
-                                                )}
+                                            <img
+                                                src="/chicon2.png"
+                                                alt={channel.name}
+                                                className="vp-channel__avatar"
+                                            />
 
                                                 <div className="vp-channel__info">
                                                     <div className="vp-channel__name">
