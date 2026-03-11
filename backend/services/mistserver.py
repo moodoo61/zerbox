@@ -106,12 +106,20 @@ def build_source_url_with_quality(base_url: str, quality: int) -> str:
     return f"{url}{sep}video={quality}"
 
 
-def create_mistserver_stream(stream_name: str, source_url: str) -> dict:
-    command = {
-        "addstream": {
-            stream_name: {"source": source_url, "name": stream_name}
-        }
-    }
+def create_mistserver_stream(stream_name: str, source_url: str, advanced: dict = None) -> dict:
+    """إضافة stream إلى MistServer مع دعم الإعدادات المتقدمة.
+    advanced keys: DVR, pagetimeout, maxkeepaway, inputtimeout, always_on, raw
+    """
+    stream_cfg = {"source": source_url, "name": stream_name}
+    if advanced:
+        for key in ("DVR", "pagetimeout", "maxkeepaway", "inputtimeout"):
+            if key in advanced:
+                stream_cfg[key] = advanced[key]
+        if advanced.get("always_on"):
+            stream_cfg["always_on"] = True
+        if advanced.get("raw"):
+            stream_cfg["raw"] = True
+    command = {"addstream": {stream_name: stream_cfg}}
     result = call_mistserver_api(command)
     if result.get('streams', {}).get(stream_name):
         print(f"   ✅ تمت إضافة {stream_name} بنجاح")

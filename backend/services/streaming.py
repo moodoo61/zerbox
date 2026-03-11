@@ -14,6 +14,13 @@ from .mistserver import (
     delete_all_mistserver_streams,
 )
 
+_DEFAULT_ADVANCED = {
+    "DVR": 200000,
+    "pagetimeout": 90,
+    "maxkeepaway": 90000,
+    "inputtimeout": 180,
+}
+
 
 def get_or_create_streaming_subscription(db: Session) -> models.StreamingSubscription:
     subscription = db.get(models.StreamingSubscription, 1)
@@ -197,7 +204,7 @@ def activate_streaming_service(db: Session, subscription_data=None) -> models.St
                     continue
                 source_url = build_source_url_with_quality(stream_url, 2)
                 try:
-                    create_mistserver_stream(channel_name, source_url)
+                    create_mistserver_stream(channel_name, source_url, _DEFAULT_ADVANCED)
                     mistserver_success.append(channel_name)
                 except Exception as e:
                     failed_channels.append(f"{channel_name}: {e}")

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Button, CircularProgress, Alert, 
     Card, CardContent, Divider, Chip, List, ListItem,
-    Paper, Tabs, Tab, FormControl, Select, MenuItem
+    Paper, Tabs, Tab, FormControl, Select, MenuItem,
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    TextField, Switch, FormControlLabel, IconButton
 } from '@mui/material';
 import { 
     Save as SaveIcon, 
@@ -15,7 +17,9 @@ import {
     PersonOff as PersonOffIcon,
     Visibility as VisibilityIcon,
     BarChart as BarChartIcon,
-    HelpOutline as HelpOutlineIcon
+    HelpOutline as HelpOutlineIcon,
+    Settings as SettingsIcon,
+    Close as CloseIcon
 } from '@mui/icons-material';
 import ViewerPageManager from './ViewerPageManager';
 
@@ -43,6 +47,14 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [mistServerMessage, setMistServerMessage] = useState(null);
     const [defaultQuality, setDefaultQuality] = useState(2); // 1=اعلى، 2=متوسطة، 3=منخفضة
     const [pendingQuality, setPendingQuality] = useState({}); // streamKey -> quality (عند اختيار جودة مختلفة تظهر زر التطبيق)
+    const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [advancedChannel, setAdvancedChannel] = useState(null); // {name, stream_key}
+    const [advancedLoading, setAdvancedLoading] = useState(false);
+    const [advancedSaving, setAdvancedSaving] = useState(false);
+    const [advancedSettings, setAdvancedSettings] = useState({
+        dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
+        inputtimeout: 180, always_on: false, raw: false,
+    });
 
     // دوال مساعدة لتحديد حالة القناة
     const getChannelStatus = (stats) => {
@@ -491,6 +503,58 @@ const StreamingManager = ({ auth, userInfo }) => {
         }
     };
 
+    const openAdvancedSettings = async (channel) => {
+        const key = channel.stream_key || channel.name;
+        setAdvancedChannel(channel);
+        setAdvancedOpen(true);
+        setAdvancedLoading(true);
+        try {
+            const response = await fetch(`/api/streaming/channels/${encodeURIComponent(key)}/advanced`, {
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setAdvancedSettings(data.settings);
+            } else {
+                setAdvancedSettings({
+                    dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
+                    inputtimeout: 180, always_on: false, raw: false,
+                });
+            }
+        } catch {
+            setAdvancedSettings({
+                dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
+                inputtimeout: 180, always_on: false, raw: false,
+            });
+        } finally {
+            setAdvancedLoading(false);
+        }
+    };
+
+    const saveAdvancedSettings = async () => {
+        if (!advancedChannel) return;
+        const key = advancedChannel.stream_key || advancedChannel.name;
+        setAdvancedSaving(true);
+        try {
+            const response = await fetch(`/api/streaming/channels/${encodeURIComponent(key)}/advanced`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+                body: JSON.stringify(advancedSettings)
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setSuccess(data.message);
+                setAdvancedOpen(false);
+            } else {
+                setError(data.message);
+            }
+        } catch (err) {
+            setError(`فشل في حفظ الإعدادات: ${err.message}`);
+        } finally {
+            setAdvancedSaving(false);
+        }
+    };
+
     const fetchChannelStats = async (channelName) => {
         try {
             const response = await fetch(`/api/streaming/channels/${channelName}/stats`, {
@@ -820,6 +884,18 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                         >
                                                             حذف القناة
                                                         </Button>
+                                                        
+                                                        <Button
+                                                            size="small"
+                                                            variant="outlined"
+                                                            color="secondary"
+                                                            onClick={() => openAdvancedSettings(channel)}
+                                                            disabled={!!actionState}
+                                                            startIcon={<SettingsIcon />}
+                                                            sx={{ flex: 1, minWidth: '130px' }}
+                                                        >
+                                                            إعدادات متقدمة
+                                                        </Button>
                                                     </Box>
                                                 </Box>
                                             </ListItem>
@@ -875,8 +951,65 @@ const StreamingManager = ({ auth, userInfo }) => {
                 )}
                 </>); })()}
             </Paper>
+
+            {/* موديال الإعدادات المتقدمة */}
+            <Dialog
+                open={advancedOpen}
+                onClose={() => !advancedSaving && setAdvancedOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                dir="rtl"
+            >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <SettingsIcon color="primary" />
+                        <Typography variant="h6">إعدادات متقدمة — {advancedChannel?.name}</Typography>
+                    </Box>
+                    <IconButton onClick={() => !advancedSaving && setAdvancedOpen(false)} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent dividers sx={{ py: 1.5 }}>
+                    {advancedLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>
+                    ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <FormControlLabel
+                                    control={<Switch checked={advancedSettings.always_on} onChange={e => setAdvancedSettings(s => ({ ...s, always_on: e.target.checked }))} color="primary" size="small" />}
+                                    label="تشغيل دائم"
+                                    sx={{ flex: 1 }}
+                                />
+                                <FormControlLabel
+                                    control={<Switch checked={advancedSettings.raw} onChange={e => setAdvancedSettings(s => ({ ...s, raw: e.target.checked }))} color="primary" size="small" />}
+                                    label="تمرير مباشر"
+                                    sx={{ flex: 1 }}
+                                />
+                            </Box>
+                            <Divider />
+                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                                <TextField label="مدة التأخير" type="number" value={advancedSettings.dvr} onChange={e => setAdvancedSettings(s => ({ ...s, dvr: Number(e.target.value) }))} size="small" />
+                                <TextField label="مؤقت الانتظار" type="number" value={advancedSettings.pagetimeout} onChange={e => setAdvancedSettings(s => ({ ...s, pagetimeout: Number(e.target.value) }))} size="small" />
+                                <TextField label="المدة القصوى للتأخير" type="number" value={advancedSettings.maxkeepaway} onChange={e => setAdvancedSettings(s => ({ ...s, maxkeepaway: Number(e.target.value) }))} size="small" />
+                                <TextField label="مدة انتظار البيانات" type="number" value={advancedSettings.inputtimeout} onChange={e => setAdvancedSettings(s => ({ ...s, inputtimeout: Number(e.target.value) }))} size="small" />
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, py: 2 }}>
+                    <Button onClick={() => setAdvancedOpen(false)} disabled={advancedSaving}>إلغاء</Button>
+                    <Button
+                        variant="contained"
+                        onClick={saveAdvancedSettings}
+                        disabled={advancedSaving || advancedLoading}
+                        startIcon={advancedSaving ? <CircularProgress size={16} /> : <SaveIcon />}
+                    >
+                        {advancedSaving ? 'جاري الحفظ...' : 'حفظ'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
 
-export default StreamingManager; 
+export default StreamingManager;

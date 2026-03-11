@@ -118,6 +118,17 @@ def create_db_and_tables():
             if "video_quality" not in cols:
                 conn.execute(text("ALTER TABLE channel ADD COLUMN video_quality INTEGER DEFAULT 2"))
                 conn.commit()
+            for col_name, col_type, col_default in [
+                ("dvr", "INTEGER", "200000"),
+                ("pagetimeout", "INTEGER", "90"),
+                ("maxkeepaway", "INTEGER", "90000"),
+                ("inputtimeout", "INTEGER", "180"),
+                ("always_on", "BOOLEAN", "0"),
+                ("raw", "BOOLEAN", "0"),
+            ]:
+                if col_name not in cols:
+                    conn.execute(text(f"ALTER TABLE channel ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"))
+                    conn.commit()
     except Exception:
         pass
 
