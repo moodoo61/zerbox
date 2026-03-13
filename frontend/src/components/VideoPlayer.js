@@ -39,6 +39,7 @@ const VideoPlayer = ({
     const rafRef = useRef(null);
     const retryTimerRef = useRef(null);
     const retryCountRef = useRef(0);
+    const waitingTimerRef = useRef(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +121,7 @@ const VideoPlayer = ({
     const cleanup = useCallback(() => {
         if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
         if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+        if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
         if (hlsRef.current) {
             hlsRef.current.destroy();
             hlsRef.current = null;
@@ -514,7 +516,7 @@ const VideoPlayer = ({
                     </Box>
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.95)', mb: 0.5 }}>
-                    تم الآن تفعيل القناة
+                    يتم الآن تفعيل القناة
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
                     جاري التفعيل...
@@ -580,9 +582,18 @@ const VideoPlayer = ({
                     }}
                     controls={false}
                     onLoadStart={() => { setIsLoading(true); setError(null); }}
-                    onCanPlay={() => { setIsLoading(false); setError(null); }}
-                    onWaiting={() => setIsLoading(true)}
-                    onPlaying={() => { setIsLoading(false); setIsPlaying(true); }}
+                    onCanPlay={() => {
+                        if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
+                        setIsLoading(false); setError(null);
+                    }}
+                    onWaiting={() => {
+                        if (waitingTimerRef.current) clearTimeout(waitingTimerRef.current);
+                        waitingTimerRef.current = setTimeout(() => setIsLoading(true), 800);
+                    }}
+                    onPlaying={() => {
+                        if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
+                        setIsLoading(false); setIsPlaying(true);
+                    }}
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     onError={() => {

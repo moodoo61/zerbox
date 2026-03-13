@@ -119,10 +119,10 @@ def create_db_and_tables():
                 conn.execute(text("ALTER TABLE channel ADD COLUMN video_quality INTEGER DEFAULT 2"))
                 conn.commit()
             for col_name, col_type, col_default in [
-                ("dvr", "INTEGER", "200000"),
-                ("pagetimeout", "INTEGER", "90"),
-                ("maxkeepaway", "INTEGER", "90000"),
-                ("inputtimeout", "INTEGER", "180"),
+                ("dvr", "INTEGER", "100000"),
+                ("pagetimeout", "INTEGER", "60"),
+                ("maxkeepaway", "INTEGER", "60000"),
+                ("inputtimeout", "INTEGER", "120"),
                 ("always_on", "BOOLEAN", "0"),
                 ("raw", "BOOLEAN", "0"),
             ]:

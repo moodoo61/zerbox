@@ -3,7 +3,7 @@ import {
     Box, Typography, Switch, FormControlLabel, TextField, Button,
     Grid, Card, CardContent, Alert, CircularProgress, Chip,
     Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText,
-    ListItemIcon, Divider, Slider
+    ListItemIcon, ListItemSecondaryAction, Divider, Slider
 } from '@mui/material';
 import {
     Save as SaveIcon,
@@ -12,10 +12,14 @@ import {
     LiveTv as LiveTvIcon,
     Launch as LaunchIcon,
     Refresh as RefreshIcon,
-    CloudUpload as CloudUploadIcon
+    CloudUpload as CloudUploadIcon,
+    FiberManualRecord as DotIcon
 } from '@mui/icons-material';
+import useMistStreamStatus from '../hooks/useMistStreamStatus';
 
 const ViewerPageManager = ({ auth }) => {
+    const { channelStats, wsConnected } = useMistStreamStatus();
+
     const [settings, setSettings] = useState({
         is_enabled: false,
         page_title: 'البث المباشر',
@@ -444,17 +448,53 @@ const ViewerPageManager = ({ auth }) => {
                         <Typography variant="h6">القنوات المتاحة ({channels.length})</Typography>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
+                    {wsConnected && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                            <DotIcon sx={{ fontSize: 10, color: '#10b981' }} />
+                            <Typography variant="caption" color="text.secondary">حالة البث لحظية (WebSocket)</Typography>
+                        </Box>
+                    )}
                     {channels.length > 0 ? (
                         <List dense>
-                            {channels.slice(0, 8).map((ch) => (
-                                <ListItem key={ch.id} sx={{ py: 0.5 }}>
-                                    <ListItemIcon sx={{ minWidth: 36 }}>
-                                        <LiveTvIcon fontSize="small" color={ch.is_active ? 'success' : 'disabled'} />
-                                    </ListItemIcon>
-                                    <ListItemText primary={ch.name} secondary={ch.category || '—'} />
-                                    <Chip label={ch.is_active ? 'نشط' : 'معطل'} size="small" color={ch.is_active ? 'success' : 'default'} />
-                                </ListItem>
-                            ))}
+                            {channels.slice(0, 8).map((ch) => {
+                                const sk = ch.stream_key || ch.name;
+                                const live = channelStats[sk];
+                                const isLive = live?.status === 'active';
+                                const viewers = live?.connections ?? 0;
+                                return (
+                                    <ListItem key={ch.id} sx={{ py: 0.5 }}>
+                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                            <LiveTvIcon fontSize="small" color={ch.is_active ? 'success' : 'disabled'} />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={ch.name}
+                                            secondary={ch.category || '—'}
+                                        />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            {isLive && viewers > 0 && (
+                                                <Chip
+                                                    icon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+                                                    label={viewers}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    sx={{ height: 22, fontSize: '0.7rem' }}
+                                                />
+                                            )}
+                                            <Chip
+                                                icon={isLive ? <DotIcon sx={{ fontSize: 10, color: '#ef4444', animation: 'pulse 1.5s infinite' }} /> : undefined}
+                                                label={isLive ? 'مباشر' : ch.is_active ? 'نشط' : 'معطل'}
+                                                size="small"
+                                                color={isLive ? 'error' : ch.is_active ? 'success' : 'default'}
+                                                variant={isLive ? 'filled' : 'outlined'}
+                                                sx={isLive ? {
+                                                    '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } },
+                                                    fontWeight: 700,
+                                                } : {}}
+                                            />
+                                        </Box>
+                                    </ListItem>
+                                );
+                            })}
                             {channels.length > 8 && (
                                 <ListItem><ListItemText primary={`و ${channels.length - 8} قنوات أخرى`} primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }} /></ListItem>
                             )}

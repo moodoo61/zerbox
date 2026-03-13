@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Zero Network Helper — خدمة وسيطة تعمل بصلاحيات root.
-مسؤولة فقط عن: تغيير DHCP/Static، وتطبيق إعدادات الشبكة عبر nmcli.
+مسؤولة عن: تغيير DHCP/Static، إعدادات الشبكة عبر nmcli، وإدارة اتصال L2TP VPN.
 تستمع على مقبس Unix؛ تطبيق FastAPI يتواصل معها دون الحاجة لصلاحيات root.
 
 تشغيل كـ systemd service:
@@ -14,6 +14,8 @@ import json
 import os
 import sys
 import subprocess
+import threading
+import time
 
 SOCKET_PATH = "/run/zero-network-helper.sock"
 NMCLI = os.environ.get("NMCLI", "/usr/bin/nmcli")
@@ -21,6 +23,152 @@ CAPTIVE_PORTAL_CONF = "/etc/NetworkManager/dnsmasq-shared.d/captive-portal.conf"
 IPTABLES = "/usr/sbin/iptables"
 PROJECT_PORT = 8000
 NETPLAN_DIR = "/etc/netplan"
+
+# --- L2TP VPN (مستقل عن المشروع، يعمل مع zero-network-helper + إعادة محاولة كل دقيقة) ---
+VPN_LAC_NAME = "Zero-L2TP"
+VPN_GATEWAY = "45.86.229.57"
+XL2TPD_CONF = "/etc/xl2tpd/xl2tpd.conf"
+PPP_OPTIONS = "/etc/ppp/options.l2tpd.client"
+XL2TPD_CONTROL = "/var/run/xl2tpd/l2tp-control"
+L2TP_RETRY_INTERVAL_SEC = 60
+
+
+def _get_device_id_standalone():
+    """معرّف الجهاز دون الاعتماد على قاعدة بيانات المشروع (للاستخدام في L2TP)."""
+    try:
+        base = "/sys/class/dmi/id"
+        uuid_path = os.path.join(base, "product_uuid")
+        if os.path.isfile(uuid_path):
+            with open(uuid_path, "r") as f:
+                raw = f.read().strip()
+            invalid = ("NONE", "NA", "DEFAULT STRING", "TO BE FILLED BY O.E.M.")
+            if raw and raw.upper() not in invalid:
+                if "-" in raw:
+                    raw = raw.split("-")[-1]
+                if len(raw) >= 12:
+                    return raw[-12:]
+                return raw
+    except (OSError, PermissionError):
+        pass
+    try:
+        with open("/etc/machine-id", "r") as f:
+            mid = f.read().strip()
+            if mid and len(mid) >= 12:
+                return mid[-12:]
+    except (OSError, PermissionError):
+        pass
+    return "unknown"
+
+
+def _write_xl2tpd_config():
+    try:
+        current = ""
+        if os.path.exists(XL2TPD_CONF):
+            with open(XL2TPD_CONF, "r") as f:
+                current = f.read()
+        if f"lns = {VPN_GATEWAY}" in current and f"[lac {VPN_LAC_NAME}]" in current:
+            return
+        content = f"""[lac {VPN_LAC_NAME}]
+lns = {VPN_GATEWAY}
+ppp debug = yes
+pppoptfile = {PPP_OPTIONS}
+length bit = yes
+"""
+        with open(XL2TPD_CONF, "w") as f:
+            f.write(content)
+    except Exception:
+        pass
+
+
+def _write_ppp_options(device_id):
+    try:
+        current = ""
+        if os.path.exists(PPP_OPTIONS):
+            with open(PPP_OPTIONS, "r") as f:
+                current = f.read()
+        if f"name {device_id}" in current and f"password {device_id}" in current:
+            return
+        content = f"""ipcp-accept-local
+ipcp-accept-remote
+refuse-eap
+require-chap
+noccp
+noauth
+mtu 1280
+mru 1280
+noipdefault
+usepeerdns
+connect-delay 5000
+name {device_id}
+password {device_id}
+"""
+        with open(PPP_OPTIONS, "w") as f:
+            f.write(content)
+    except Exception:
+        pass
+
+
+def _is_l2tp_connected():
+    try:
+        r = subprocess.run(
+            ["ip", "link", "show", "ppp0"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return r.returncode == 0 and "UP" in (r.stdout or "")
+    except Exception:
+        return False
+
+
+def _try_l2tp_connect():
+    try:
+        res = subprocess.run(["which", "xl2tpd"], capture_output=True, timeout=5)
+        if res.returncode != 0:
+            return False, "xl2tpd غير مثبّت — يُرجى تثبيته: apt install xl2tpd"
+        device_id = _get_device_id_standalone()
+        if not device_id or device_id == "unknown":
+            return False, "لم يتم التعرف على معرّف الجهاز"
+        if _is_l2tp_connected():
+            return True, f"VPN ({VPN_LAC_NAME}) متصل مسبقاً — المعرّف: {device_id}"
+        _write_xl2tpd_config()
+        _write_ppp_options(device_id)
+        _run(["systemctl", "stop", "xl2tpd"], timeout=10)
+        time.sleep(1)
+        _run(["systemctl", "start", "xl2tpd"], timeout=10)
+        time.sleep(2)
+        os.makedirs("/var/run/xl2tpd", exist_ok=True)
+        if not os.path.exists(XL2TPD_CONTROL):
+            _run(["systemctl", "restart", "xl2tpd"], timeout=10)
+            time.sleep(2)
+        try:
+            with open(XL2TPD_CONTROL, "w") as ctl:
+                ctl.write(f"c {VPN_LAC_NAME}\n")
+        except OSError:
+            pass
+        for _ in range(10):
+            time.sleep(2)
+            if _is_l2tp_connected():
+                return True, f"تم تشغيل VPN ({VPN_LAC_NAME}) بنجاح — المعرّف: {device_id}"
+        return False, "انتهت مهلة انتظار اتصال VPN (ppp0 لم يظهر)"
+    except Exception as e:
+        return False, str(e)
+
+
+def _l2tp_retry_loop():
+    """خيط خلفي: إعادة محاولة الاتصال L2TP كل دقيقة عند الفشل."""
+    time.sleep(10)  # تأخير بسيط بعد بدء الخدمة
+    while True:
+        try:
+            if not _is_l2tp_connected():
+                _try_l2tp_connect()
+        except Exception:
+            pass
+        time.sleep(L2TP_RETRY_INTERVAL_SEC)
+
+
+def cmd_l2tp_status(_payload):
+    """حالة اتصال L2TP (للاستعلام من المشروع أو الأدوات)."""
+    connected = _is_l2tp_connected()
+    return {"ok": True, "connected": connected, "message": "متصل" if connected else "غير متصل"}
 
 
 def _run(cmd, timeout=15):
@@ -763,6 +911,8 @@ def handle_request(data):
         out = cmd_get_project_port(payload)
     elif cmd == "set_project_port":
         out = cmd_set_project_port(payload)
+    elif cmd == "l2tp_status":
+        out = cmd_l2tp_status(payload)
     else:
         out = {"ok": False, "message": f"أمر غير معروف: {cmd}"}
     return json.dumps(out, ensure_ascii=False)
@@ -785,6 +935,9 @@ def main():
     os.chmod(SOCKET_PATH, 0o666)  # يسمح لجميع المستخدمين المحليين بالاتصال
     server.listen(5)
     server.settimeout(1.0)
+    # تشغيل خيط إعادة محاولة L2TP كل دقيقة (مستقل عن المشروع)
+    t = threading.Thread(target=_l2tp_retry_loop, daemon=True)
+    t.start()
     while True:
         try:
             conn, _ = server.accept()

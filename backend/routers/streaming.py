@@ -1,8 +1,11 @@
 """راوتر البث المباشر وسيرفر المشاهدة MistServer والقنوات وصفحة المشاهدة والمباريات."""
+import asyncio
+import json
+import base64
 import time as _time
 import requests as _requests
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from sqlmodel import Session, select
 from backend import models, services
@@ -11,6 +14,105 @@ from backend.auth import check_auth
 from backend.services.system_log import log_event
 
 router = APIRouter()
+
+# ── MistServer WebSocket → Frontend broadcaster ──
+
+_MIST_STATUS = {0: "offline", 1: "init", 2: "boot", 3: "wait", 4: "ready", 5: "shutdown", 6: "invalid"}
+
+
+class _StreamBroadcaster:
+    """Connects to MistServer WebSocket and broadcasts stream status to frontend clients."""
+
+    def __init__(self):
+        self._clients: set = set()
+        self._stats: dict = {}
+        self._task = None
+
+    async def subscribe(self, ws: WebSocket):
+        await ws.accept()
+        self._clients.add(ws)
+        if self._stats:
+            try:
+                await ws.send_json({"type": "init", "stats": self._stats})
+            except Exception:
+                self._clients.discard(ws)
+                return
+        if self._task is None or self._task.done():
+            self._task = asyncio.create_task(self._mist_loop())
+
+    def unsubscribe(self, ws: WebSocket):
+        self._clients.discard(ws)
+
+    async def _mist_loop(self):
+        try:
+            import websockets
+        except ImportError:
+            return
+
+        creds = base64.b64encode(
+            f"{services.MISTSERVER_USERNAME}:{services.MISTSERVER_PASSWORD}".encode()
+        ).decode()
+        uri = f"ws://{services.MISTSERVER_HOST}:{services.MISTSERVER_PORT}/ws?streams=1"
+
+        while self._clients:
+            try:
+                async with websockets.connect(
+                    uri, additional_headers={"Authorization": f"Basic {creds}"}, close_timeout=5,
+                ) as mist_ws:
+                    async for raw in mist_ws:
+                        if not self._clients:
+                            break
+                        try:
+                            event = json.loads(raw)
+                            if not (isinstance(event, list) and len(event) >= 2 and event[0] == "stream"):
+                                continue
+                            payload = event[1]
+                            if not isinstance(payload, (list, tuple)) or len(payload) < 5:
+                                continue
+                            name = payload[0]
+                            status_code = int(payload[1])
+                            viewers = int(payload[2])
+                            inputs = int(payload[3])
+                            outputs = int(payload[4])
+                            is_active = inputs > 0 and 1 <= status_code <= 4
+                            stat = {
+                                "status": "active" if is_active else _MIST_STATUS.get(status_code, "offline"),
+                                "connections": viewers,
+                                "inputs": inputs,
+                                "outputs": outputs,
+                            }
+                            self._stats[name] = stat
+                            await self._broadcast({"type": "update", "stream": name, **stat})
+                        except (ValueError, KeyError, TypeError):
+                            pass
+            except Exception:
+                if self._clients:
+                    await asyncio.sleep(3)
+
+    async def _broadcast(self, data: dict):
+        dead = set()
+        for ws in list(self._clients):
+            try:
+                await ws.send_json(data)
+            except Exception:
+                dead.add(ws)
+        self._clients -= dead
+
+
+_broadcaster = _StreamBroadcaster()
+
+
+@router.websocket("/ws/stream-status")
+async def ws_stream_status(websocket: WebSocket):
+    """WebSocket endpoint — يرسل تحديثات حالة البث لحظياً من MistServer."""
+    await _broadcaster.subscribe(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _broadcaster.unsubscribe(websocket)
 
 # حالة التفعيل التلقائي عند الإقلاع — يُحدَّث من lifespan في main.py
 auto_activation_result: dict = {"status": None, "message": None}
@@ -575,9 +677,12 @@ def get_viewer_page_stats():
 
         simplified_stats = {}
         for stream_name, stream_stats in (active_streams.items() if isinstance(active_streams, dict) else []):
+            has_input = stream_stats.get("inputs", 0) > 0
             simplified_stats[stream_name] = {
                 "connections": stream_stats.get("viewers", 0),
-                "status": "active" if stream_stats.get("viewers", 0) > 0 else "inactive"
+                "inputs": stream_stats.get("inputs", 0),
+                "outputs": stream_stats.get("outputs", 0),
+                "status": "active" if has_input else "inactive"
             }
 
         return {

@@ -11,6 +11,7 @@ import {
 } from '@mui/icons-material';
 import VideoPlayer from './VideoPlayer';
 import MatchesTable from './MatchesTable';
+import useMistStreamStatus from '../hooks/useMistStreamStatus';
 import './ViewerPage.css';
 
 /* ── Gradient palette for channels without logos ── */
@@ -44,10 +45,11 @@ const ViewerPage = () => {
     const [loading, setLoading]                 = useState(true);
     const [error, setError]                     = useState(null);
     const [selectedChannel, setSelectedChannel] = useState(null);
-    const [channelStats, setChannelStats]       = useState({});
     const [activatingStreamKey, setActivatingStreamKey] = useState(null);
     const [userInitiated, setUserInitiated]     = useState(false);
     const [matchesOpen, setMatchesOpen]         = useState(false);
+
+    const { channelStats, wsConnected, refetch } = useMistStreamStatus();
 
     /* ── Fetch page data ── */
     const fetchPageData = useCallback(async () => {
@@ -58,7 +60,6 @@ const ViewerPage = () => {
             const data = await response.json();
             if (data.status === 'enabled') {
                 setPageData(data);
-                /* لا يتم تشغيل أي قناة تلقائياً — المستخدم يختار القناة يدوياً */
             } else if (data.status === 'disabled') {
                 setPageData(null);
                 setError('صفحة المشاهدة غير متاحة حالياً');
@@ -72,25 +73,9 @@ const ViewerPage = () => {
         }
     }, []);
 
-    /* ── Fetch stats ── */
-    const fetchChannelStats = useCallback(async () => {
-        try {
-            const r = await fetch('/api/viewer-page/stats');
-            if (r.ok) {
-                const d = await r.json();
-                if (d.status === 'success') setChannelStats(d.streams_stats || {});
-            }
-        } catch { /* silent */ }
-    }, []);
+    useEffect(() => { fetchPageData(); }, [fetchPageData]);
 
-    useEffect(() => {
-        fetchPageData();
-        fetchChannelStats();
-        const i = setInterval(fetchChannelStats, 30000);
-        return () => clearInterval(i);
-    }, [fetchPageData, fetchChannelStats]);
-
-    /* ── عند الضغط على قناة غير مفعّلة: طلب تشغيل القناة (تفعيل) ثم استعلام حتى تصبح فعّالة ── */
+    /* ── عند الضغط على قناة غير مفعّلة: طلب تشغيل القناة ثم انتظار WebSocket يبلّغ أنها active ── */
     useEffect(() => {
         if (!activatingStreamKey) return;
         const host = window.location.hostname;
@@ -100,14 +85,15 @@ const ViewerPage = () => {
         else if (format === 'mp4') playbackUrl = `http://${host}:8080/${activatingStreamKey}.mp4`;
         else playbackUrl = `http://${host}:8080/hls/${activatingStreamKey}/index.m3u8`;
         fetch(playbackUrl).catch(() => {});
-        const interval = setInterval(fetchChannelStats, 2000);
-        return () => clearInterval(interval);
-    }, [activatingStreamKey, pageData?.settings?.streaming_format, fetchChannelStats]);
+        if (!wsConnected) {
+            const i = setInterval(refetch, 2000);
+            return () => clearInterval(i);
+        }
+    }, [activatingStreamKey, pageData?.settings?.streaming_format, wsConnected, refetch]);
 
     useEffect(() => {
         if (!activatingStreamKey) return;
-        const st = channelStats[activatingStreamKey];
-        if (st?.status === 'active') setActivatingStreamKey(null);
+        if (channelStats[activatingStreamKey]?.status === 'active') setActivatingStreamKey(null);
     }, [activatingStreamKey, channelStats]);
 
     /* ── Derived data ── */
@@ -125,7 +111,7 @@ const ViewerPage = () => {
         if (isActive) setActivatingStreamKey(null);
         else setActivatingStreamKey(sk);
     };
-    const handleRefresh = () => { fetchPageData(); fetchChannelStats(); };
+    const handleRefresh = () => { fetchPageData(); refetch(); };
 
     /* ================================================================
        STATE: Loading
