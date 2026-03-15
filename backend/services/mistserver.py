@@ -97,9 +97,16 @@ def call_mistserver_api(command_data: dict) -> dict:
 
 
 def build_source_url_with_quality(base_url: str, quality: int) -> str:
-    """إضافة معامل الجودة &video=X إلى رابط القناة. quality: 1=اعلى، 2=متوسطة، 3=منخفضة."""
+    """إدراج الجودة في الرابط: استبدال المتغير $vi بـ video=X في الموضع الدقيق.
+    quality: 1=اعلى، 2=متوسطة، 3=منخفضة.
+    إذا لم يوجد $vi يُستخدم السلوك القديم (إلحاق ?video=X أو &video=X).
+    """
     if not base_url or quality not in (1, 2, 3):
         return base_url
+    # الطريقة الدقيقة: الرابط يأتي مع $vi ويُستبدل بـ video=1|2|3 في مكانه
+    if "$vi" in base_url:
+        return base_url.replace("$vi", f"video={quality}")
+    # fallback للروابط القديمة بدون $vi
     url = re.sub(r"[?&]video=\d+", "", base_url)
     url = url.rstrip("?&")
     sep = "&" if "?" in url else "?"
