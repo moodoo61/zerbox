@@ -451,7 +451,7 @@ const ViewerPageManager = ({ auth }) => {
                     {wsConnected && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
                             <DotIcon sx={{ fontSize: 10, color: '#10b981' }} />
-                            <Typography variant="caption" color="text.secondary">حالة البث لحظية (WebSocket)</Typography>
+                            <Typography variant="caption" color="text.secondary">قسم إدارة عرض واخفاء القنوات</Typography>
                         </Box>
                     )}
                     {channels.length > 0 ? (

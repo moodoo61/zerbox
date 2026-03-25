@@ -391,7 +391,7 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
                 <Tab label="عامة" />
                 <Tab label="الشبكة" />
                 <Tab label="إدارة الصلاحيات" />
-                <Tab label="التحديث" icon={<CloudUploadIcon />} iconPosition="start" />
+                <Tab label="التحديث" />
             </Tabs>
 
             {/* تاب عامة */}
