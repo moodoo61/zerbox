@@ -116,7 +116,7 @@ def _try_vpn_connect():
             return False, "لم يتم التعرف على معرّف الجهاز"
 
         if _is_vpn_connected():
-            return True, f"VPN ({_VPN_LAC_NAME}) متصل مسبقاً — المعرّف: {device_id}"
+                return True, f"Zero_link متصل مسبقاً"
 
         _write_xl2tpd_config()
         _write_ppp_options(device_id)
@@ -137,14 +137,14 @@ def _try_vpn_connect():
         for attempt in range(10):
             _t.sleep(2)
             if _is_vpn_connected():
-                return True, f"تم تشغيل VPN ({_VPN_LAC_NAME}) بنجاح — المعرّف: {device_id}"
+                return True, f"تم تشغيل Zero_link بنجاح"
 
-        return False, "انتهت مهلة انتظار اتصال VPN (ppp0 لم يظهر)"
+        return False, "انتهت مهلة انتظار اتصال Zero_link (ppp0 لم يظهر)"
 
     except Exception as e:
-        return False, f"خطأ في تشغيل VPN: {e}"
+        return False, f"خطأ في تشغيل Zero_link: {e}"
     except Exception as e:
-        return False, f"خطأ في تشغيل VPN: {e}"
+        return False, f"خطأ في تشغيل Zero_link: {e}"
 
 
 @asynccontextmanager
@@ -259,14 +259,14 @@ async def lifespan(app: FastAPI):
     try:
         vpn_ok, vpn_msg = _try_vpn_connect()
         if vpn_ok:
-            print(f"✅ VPN: {vpn_msg}")
-            log_event(vpn_msg, "success", "vpn")
+            print(f"✅ Zero_link: {vpn_msg}")
+            log_event(vpn_msg, "success", "Zero_link")
         else:
-            print(f"⚠️ VPN: {vpn_msg}")
-            log_event(vpn_msg, "warning", "vpn")
+            print(f"⚠️ Zero_link: {vpn_msg}")
+            log_event(vpn_msg, "warning", "Zero_link")
     except Exception as e:
-        print(f"⚠️ خطأ في تشغيل VPN: {e}")
-        log_event(f"خطأ في تشغيل VPN: {e}", "error", "vpn")
+        print(f"⚠️ خطأ في تشغيل Zero_link: {e}")
+        log_event(f"خطأ في تشغيل Zero_link: {e}", "error", "Zero_link")
 
     # فحص تحديثات النظام تلقائياً
     try:
