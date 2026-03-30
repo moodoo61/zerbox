@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Typography, Button, CircularProgress, Alert, 
-    Card, CardContent, Divider, Chip, List, ListItem,
+    Box, Typography, Button, CircularProgress, Alert,
+    Card, CardContent, Divider, Chip, List, ListItem, ListItemText,
     Paper, Tabs, Tab, FormControl, Select, MenuItem,
     Dialog, DialogTitle, DialogContent, DialogActions,
-    TextField, Switch, FormControlLabel, IconButton
+    TextField, Switch, FormControlLabel, IconButton,
+    Radio, RadioGroup,
 } from '@mui/material';
-import { 
-    Save as SaveIcon, 
-    LiveTv as LiveTvIcon, 
-    CheckCircle as CheckCircleIcon,
-    Error as ErrorIcon,
+import {
+    Save as SaveIcon,
+    LiveTv as LiveTvIcon,
     Refresh as RefreshIcon,
     Delete as DeleteIcon,
     Restore as RestoreIcon,
@@ -19,7 +18,8 @@ import {
     BarChart as BarChartIcon,
     HelpOutline as HelpOutlineIcon,
     Settings as SettingsIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Tune as TuneIcon,
 } from '@mui/icons-material';
 import ViewerPageManager from './ViewerPageManager';
 
@@ -43,18 +43,6 @@ function videoQualityShortLabel(value) {
     return opt ? opt.shortLabel : VIDEO_QUALITY_OPTIONS[1].shortLabel;
 }
 
-/** عناصر القائمة: اسم عريض + نص توضيحي */
-function VideoQualityMenuItems() {
-    return VIDEO_QUALITY_OPTIONS.map((opt) => (
-        <MenuItem key={opt.value} value={opt.value} sx={{ py: 1.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', width: '100%' }}>
-                <Typography component="span" sx={{ fontWeight: 700 }}>{opt.shortLabel}</Typography>
-                <Typography component="span" variant="body2" color="text.secondary">{opt.hint}</Typography>
-            </Box>
-        </MenuItem>
-    ));
-}
-
 function normalizeVideoQualityFromApi(q) {
     if (q === 1 || q === '1') return '1280x720';
     if (q === 2 || q === '2') return '854x480';
@@ -67,7 +55,7 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [streamingTab, setStreamingTab] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState(null);
     const [isActivated, setIsActivated] = useState(false);
     const [channels, setChannels] = useState([]);
     const [loadingChannels, setLoadingChannels] = useState(false);
@@ -79,6 +67,8 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [mistServerAvailable, setMistServerAvailable] = useState(null); // null=checking, true/false
     const [mistServerMessage, setMistServerMessage] = useState(null);
     const [defaultQuality, setDefaultQuality] = useState(DEFAULT_VIDEO_QUALITY);
+    const [bulkQualityDialogOpen, setBulkQualityDialogOpen] = useState(false);
+    const [bulkQualityDraft, setBulkQualityDraft] = useState(DEFAULT_VIDEO_QUALITY);
     const [pendingQuality, setPendingQuality] = useState({}); // streamKey -> quality (عند اختيار جودة مختلفة تظهر زر التطبيق)
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const [advancedChannel, setAdvancedChannel] = useState(null); // {name, stream_key}
@@ -88,6 +78,28 @@ const StreamingManager = ({ auth, userInfo }) => {
         dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
         inputtimeout: 180, always_on: false, raw: false,
     });
+
+    const TOAST_AUTO_HIDE_MS = 6000;
+    useEffect(() => {
+        if (!error && !successMessage) return;
+        const t = setTimeout(() => {
+            setError(null);
+            setSuccessMessage(null);
+        }, TOAST_AUTO_HIDE_MS);
+        return () => clearTimeout(t);
+    }, [error, successMessage]);
+
+    useEffect(() => {
+        if (!mistServerStatus) return;
+        const t = setTimeout(() => setMistServerStatus(null), 5000);
+        return () => clearTimeout(t);
+    }, [mistServerStatus]);
+
+    useEffect(() => {
+        if (!mistServerMessage) return;
+        const t = setTimeout(() => setMistServerMessage(null), 10000);
+        return () => clearTimeout(t);
+    }, [mistServerMessage]);
 
     // دوال مساعدة لتحديد حالة القناة
     const getChannelStatus = (stats) => {
@@ -279,7 +291,7 @@ const StreamingManager = ({ auth, userInfo }) => {
     const handleSubscriptionSubmit = async () => {
         setLoading(true);
         setError(null);
-        setSuccess(false);
+        setSuccessMessage(null);
 
         // فحص سيرفر المشاهدة أولاً
         try {
@@ -319,7 +331,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             }
 
             const data = await response.json();
-            setSuccess(true);
+            setSuccessMessage('تم تفعيل الخدمة بنجاح!');
             setIsActivated(data.is_active);
             setError(null);
             
@@ -340,7 +352,7 @@ const StreamingManager = ({ auth, userInfo }) => {
     const refreshChannels = async () => {
         setLoading(true);
         setError(null);
-        setSuccess(false);
+        setSuccessMessage(null);
         
         try {
             const response = await fetch('/api/streaming/refresh-channels', {
@@ -353,7 +365,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 // تحديث القنوات والإحصائيات
                 fetchChannels();
                 setTimeout(() => {
@@ -415,7 +427,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 fetchChannels(); // Refresh channel list
             } else {
                 setError(data.message);
@@ -438,7 +450,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 // تحديث الإحصائيات بعد إعادة الاتصال
                 setTimeout(() => {
                     fetchAllChannelsStats();
@@ -468,7 +480,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 fetchChannelStats(channelName); // Refresh stats
             } else {
                 setError(data.message);
@@ -494,7 +506,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             });
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 setPendingQuality(prev => { const next = { ...prev }; delete next[key]; return next; });
                 const vq = normalizeVideoQualityFromApi(quality);
                 setChannels(prev => prev.map(ch => {
@@ -514,10 +526,11 @@ const StreamingManager = ({ auth, userInfo }) => {
         }
     };
 
-    const setAllChannelsQuality = async () => {
+    const setAllChannelsQuality = async (qualityOverride) => {
+        const q = normalizeVideoQualityFromApi(qualityOverride != null ? qualityOverride : defaultQuality);
         setLoading(true);
         setError(null);
-        setSuccess(false);
+        setSuccessMessage(null);
         try {
             const response = await fetch('/api/streaming/channels/set-all-quality', {
                 method: 'POST',
@@ -525,20 +538,33 @@ const StreamingManager = ({ auth, userInfo }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Basic ${auth}`
                 },
-                body: JSON.stringify({ quality: defaultQuality })
+                body: JSON.stringify({ quality: q })
             });
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
-                setChannels(prev => prev.map(ch => ({ ...ch, video_quality: defaultQuality })));
-            } else {
-                setError(data.message || 'فشل في ضبط الجودة');
+                setSuccessMessage(data.message);
+                setDefaultQuality(q);
+                setChannels(prev => prev.map(ch => ({ ...ch, video_quality: q })));
+                return true;
             }
+            setError(data.message || 'فشل في ضبط الجودة');
+            return false;
         } catch (err) {
             setError(`فشل في ضبط جودة القنوات: ${err.message}`);
+            return false;
         } finally {
             setLoading(false);
         }
+    };
+
+    const openBulkQualityDialog = () => {
+        setBulkQualityDraft(normalizeVideoQualityFromApi(defaultQuality));
+        setBulkQualityDialogOpen(true);
+    };
+
+    const confirmBulkQuality = async () => {
+        const ok = await setAllChannelsQuality(bulkQualityDraft);
+        if (ok) setBulkQualityDialogOpen(false);
     };
 
     const openAdvancedSettings = async (channel) => {
@@ -581,7 +607,7 @@ const StreamingManager = ({ auth, userInfo }) => {
             });
             const data = await response.json();
             if (data.status === 'success') {
-                setSuccess(data.message);
+                setSuccessMessage(data.message);
                 setAdvancedOpen(false);
             } else {
                 setError(data.message);
@@ -670,119 +696,155 @@ const StreamingManager = ({ auth, userInfo }) => {
 
                 {activeTabId === 'channels' && (
                     <Box sx={{ p: 3 }}>
-            {/* بطاقة التفعيل المبسطة */}
+            {(error || successMessage) && (
+                <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {error && (
+                        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+                    )}
+                    {successMessage && (
+                        <Alert severity="success" onClose={() => setSuccessMessage(null)}>{successMessage}</Alert>
+                    )}
+                </Box>
+            )}
+            {mistServerAvailable === false && mistServerMessage && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setMistServerMessage(null)}>
+                    {mistServerMessage}
+                </Alert>
+            )}
+            {mistServerStatus && (
+                <Alert
+                    severity={mistServerStatus.status === 'success' ? 'success' : 'error'}
+                    sx={{ mb: 2 }}
+                    onClose={() => setMistServerStatus(null)}
+                >
+                    {mistServerStatus.message}
+                </Alert>
+            )}
+
             <Card sx={{ mb: 3 }}>
                 <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6">تفعيل خدمة البث المباشر</Typography>
-                        <Chip 
-                            icon={isActivated ? <CheckCircleIcon /> : <ErrorIcon />}
-                            label={isActivated ? 'مفعل' : 'غير مفعل'}
-                            color={isActivated ? 'success' : 'default'}
-                            size="small"
-                        />
-                    </Box>
-
-                    {/* حالة سيرفر المشاهدة */}
-                    {mistServerAvailable === false && mistServerMessage && (
-                        <Alert severity="error" sx={{ mb: 2 }}>
-                            {mistServerMessage}
-                        </Alert>
-                    )}
-
-                    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                    {success && <Alert severity="success" sx={{ mb: 2 }}>تم تفعيل الخدمة بنجاح!</Alert>}
-                    
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <Button
-                            variant="contained"
-                            onClick={handleSubscriptionSubmit}
-                            disabled={loading}
-                            startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
-                        >
-                            {loading ? 'جاري التفعيل...' : 'تفعيل الخدمة'}
-                        </Button>
-
-                        <Button
-                            variant="outlined"
-                            onClick={testMistServerConnection}
-                            disabled={testingConnection}
-                            startIcon={testingConnection ? <CircularProgress size={16} /> : <RefreshIcon />}
-                        >
-                            اختبار الاتصال
-                        </Button>
-                        
-                        {mistServerStatus && (
-                            <Alert 
-                                severity={mistServerStatus.status === 'success' ? 'success' : 'error'}
-                                size="small"
-                                sx={{ flex: 1 }}
-                            >
-                                {mistServerStatus.message}
-                            </Alert>
-                        )}
-                    </Box>
-                </CardContent>
-            </Card>
-
-            {/* القنوات (تظهر بعد التفعيل وعند توفر سيرفر المشاهدة) */}
-            {isActivated && mistServerAvailable && (
-                <Card>
-                    <CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6">
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+                            <Typography variant="h6" sx={{ width: '100%' }}>
                                 القنوات المتاحة ({channels.length})
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
-                                    خيارات الجودة
-                                </Typography>
-                                <FormControl size="small" sx={{ minWidth: 160 }} variant="outlined">
-                                    <Select
-                                        value={defaultQuality}
-                                        onChange={(e) => setDefaultQuality(String(e.target.value))}
-                                        displayEmpty
-                                        size="small"
-                                        renderValue={(v) => (
-                                            <Typography component="span" sx={{ fontWeight: 700 }}>
-                                                {videoQualityShortLabel(v)}
-                                            </Typography>
-                                        )}
-                                        MenuProps={{ PaperProps: { sx: { minWidth: 240 } } }}
-                                    >
-                                        <VideoQualityMenuItems />
-                                    </Select>
-                                </FormControl>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: { xs: 1, sm: 1.5 },
+                                    width: '100%',
+                                    alignItems: { xs: 'stretch', sm: 'stretch' },
+                                    justifyContent: { xs: 'stretch', sm: 'flex-start' },
+                                }}
+                            >
                                 <Button
-                                    variant="outlined"
+                                    variant="contained"
                                     size="small"
-                                    onClick={setAllChannelsQuality}
-                                    disabled={loading || channels.length === 0}
+                                    color={isActivated ? 'success' : 'primary'}
+                                    onClick={handleSubscriptionSubmit}
+                                    disabled={loading}
+                                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                                    sx={{
+                                        gap: 1.5,
+                                        '& .MuiButton-startIcon': { margin: '0 !important' },
+                                        flex: {
+                                            xs: '1 1 130px',
+                                            sm: '1 1 160px',
+                                            md: '1 1 0',
+                                        },
+                                        minWidth: { xs: '130px', sm: '160px', md: '140px' },
+                                        whiteSpace: 'nowrap',
+                                    }}
                                 >
-                                    ضبط الكل بهذه الجودة
+                                    {loading ? 'جاري التفعيل...' : 'تفعيل الخدمة'}
                                 </Button>
                                 <Button
                                     variant="outlined"
+                                    size="small"
+                                    onClick={testMistServerConnection}
+                                    disabled={testingConnection}
+                                    startIcon={testingConnection ? <CircularProgress size={16} /> : <RefreshIcon />}
+                                    sx={{
+                                        gap: 1.5,
+                                        '& .MuiButton-startIcon': { margin: '0 !important' },
+                                        flex: {
+                                            xs: '1 1 130px',
+                                            sm: '1 1 160px',
+                                            md: '1 1 0',
+                                        },
+                                        minWidth: { xs: '130px', sm: '160px', md: '140px' },
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    فحص سيرفر المشاهدة
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
                                     onClick={refreshChannels}
                                     disabled={loading}
-                                    startIcon={loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+                                    startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
+                                    sx={{
+                                        gap: 1.5,
+                                        '& .MuiButton-startIcon': { margin: '0 !important' },
+                                        flex: {
+                                            xs: '1 1 130px',
+                                            sm: '1 1 160px',
+                                            md: '1 1 0',
+                                        },
+                                        minWidth: { xs: '130px', sm: '160px', md: '140px' },
+                                        whiteSpace: 'nowrap',
+                                    }}
                                 >
                                     تحديث القنوات
                                 </Button>
                                 <Button
                                     variant="outlined"
+                                    size="small"
                                     onClick={fetchAllChannelsStats}
                                     disabled={loadingStats}
-                                    startIcon={loadingStats ? <CircularProgress size={20} /> : <BarChartIcon />}
+                                    startIcon={loadingStats ? <CircularProgress size={16} /> : <BarChartIcon />}
+                                    sx={{
+                                        gap: 1.5,
+                                        '& .MuiButton-startIcon': { margin: '0 !important' },
+                                        flex: {
+                                            xs: '1 1 130px',
+                                            sm: '1 1 160px',
+                                            md: '1 1 0',
+                                        },
+                                        minWidth: { xs: '130px', sm: '160px', md: '140px' },
+                                        whiteSpace: 'nowrap',
+                                    }}
                                 >
                                     تحديث الإحصائيات
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={openBulkQualityDialog}
+                                    disabled={loading || channels.length === 0}
+                                    startIcon={<TuneIcon />}
+                                    sx={{
+                                        gap: 1.5,
+                                        '& .MuiButton-startIcon': { margin: '0 !important' },
+                                        flex: {
+                                            xs: '1 1 130px',
+                                            sm: '1 1 160px',
+                                            md: '1 1 0',
+                                        },
+                                        minWidth: { xs: '130px', sm: '160px', md: '140px' },
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    الجودة ({videoQualityShortLabel(defaultQuality)})
                                 </Button>
                             </Box>
                         </Box>
 
                         <Divider sx={{ mb: 2 }} />
 
-                        {loadingChannels ? (
+                        {isActivated && mistServerAvailable ? (
+                        loadingChannels ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
                                 <CircularProgress />
                             </Box>
@@ -797,7 +859,8 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     // استخدام stream_key للبحث في الإحصائيات (ch11, ch12, etc.)
                                     const streamKey = channel.stream_key || channelName;
                                     const stats = channelStats[streamKey] || { total_viewers: 0, viewers: [], timestamp: 0 };
-                                    const actionState = channelActions[channelName];
+                                    /* إعادة الاتصال/الجودة تستخدم stream_key؛ الحذف قد يستخدم اسم العرض */
+                                    const actionState = channelActions[streamKey] ?? channelActions[channelName];
                                     
                                     return (
                                         <Box key={index}>
@@ -816,56 +879,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                 <Box sx={{ width: '100%' }}>
                                                     {/* رأس القناة */}
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                                            <LiveTvIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
-                                                            <Box>
-                                                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                                                    {channelName}
-                                                                </Typography>
-                                                            </Box>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                                                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                                                {channelName}
+                                                            </Typography>
                                                         </Box>
                                                         
-                                                        {/* إحصائيات سريعة + اختيار الجودة */}
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                                                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                                                                الجودة
-                                                            </Typography>
-                                                            <FormControl size="small" sx={{ minWidth: 140 }} variant="outlined">
-                                                                <Select
-                                                                    value={pendingQuality[streamKey] ?? normalizeVideoQualityFromApi(channel.video_quality)}
-                                                                    onChange={(e) => {
-                                                                        const q = String(e.target.value);
-                                                                        const current = normalizeVideoQualityFromApi(channel.video_quality);
-                                                                        if (q === current) {
-                                                                            setPendingQuality(prev => { const next = { ...prev }; delete next[streamKey]; return next; });
-                                                                        } else {
-                                                                            setPendingQuality(prev => ({ ...prev, [streamKey]: q }));
-                                                                        }
-                                                                    }}
-                                                                    disabled={channelActions[channelName] === 'settingQuality'}
-                                                                    size="small"
-                                                                    renderValue={(v) => (
-                                                                        <Typography component="span" sx={{ fontWeight: 700 }}>
-                                                                            {videoQualityShortLabel(v)}
-                                                                        </Typography>
-                                                                    )}
-                                                                    MenuProps={{ PaperProps: { sx: { minWidth: 240 } } }}
-                                                                >
-                                                                    <VideoQualityMenuItems />
-                                                                </Select>
-                                                            </FormControl>
-                                                            {pendingQuality[streamKey] != null && pendingQuality[streamKey] !== normalizeVideoQualityFromApi(channel.video_quality) && (
-                                                                <Button
-                                                                    size="small"
-                                                                    variant="contained"
-                                                                    color="primary"
-                                                                    onClick={() => setChannelQuality(streamKey, pendingQuality[streamKey])}
-                                                                    disabled={channelActions[channelName] === 'settingQuality'}
-                                                                    startIcon={channelActions[channelName] === 'settingQuality' ? <CircularProgress size={14} /> : null}
-                                                                >
-                                                                    {channelActions[channelName] === 'settingQuality' ? 'جاري التطبيق...' : 'تطبيق الجودة'}
-                                                                </Button>
-                                                            )}
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                                             <Chip
                                                                 icon={<VisibilityIcon />}
                                                                 label={`${stats.total_viewers || 0} مشاهد`}
@@ -881,8 +901,8 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                         </Box>
                                                     </Box>
 
-                                                    {/* أزرار الإجراءات */}
-                                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                    {/* أزرار الإجراءات ثم الجودة بعد «إعدادات متقدمة» */}
+                                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                                                         <Button
                                                             size="small"
                                                             variant="outlined"
@@ -890,15 +910,20 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                             onClick={() => reconnectChannel(streamKey)}
                                                             disabled={!!actionState}
                                                             startIcon={
-                                                                actionState === 'reconnecting' ? 
-                                                                <CircularProgress size={16} /> : 
+                                                                actionState === 'reconnecting' ?
+                                                                <CircularProgress size={16} /> :
                                                                 <RestoreIcon />
                                                             }
-                                                            sx={{ flex: 1, minWidth: '130px' }}
+                                                            sx={{
+                                                                gap: 1.5,
+                                                                '& .MuiButton-startIcon': { margin: '0 !important' },
+                                                                flex: 1,
+                                                                minWidth: '130px',
+                                                            }}
                                                         >
                                                             إعادة اتصال
                                                         </Button>
-                                                        
+
                                                         <Button
                                                             size="small"
                                                             variant="outlined"
@@ -906,15 +931,20 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                             onClick={() => kickAllViewers(streamKey)}
                                                             disabled={!!actionState || !(stats.total_viewers > 0)}
                                                             startIcon={
-                                                                actionState === 'kicking' ? 
-                                                                <CircularProgress size={16} /> : 
+                                                                actionState === 'kicking' ?
+                                                                <CircularProgress size={16} /> :
                                                                 <PersonOffIcon />
                                                             }
-                                                            sx={{ flex: 1, minWidth: '130px' }}
+                                                            sx={{
+                                                                gap: 1.5,
+                                                                '& .MuiButton-startIcon': { margin: '0 !important' },
+                                                                flex: 1,
+                                                                minWidth: '130px',
+                                                            }}
                                                         >
                                                             طرد الكل ({stats.total_viewers || 0})
                                                         </Button>
-                                                        
+
                                                         <Button
                                                             size="small"
                                                             variant="outlined"
@@ -922,15 +952,20 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                             onClick={() => deleteChannel(channelName)}
                                                             disabled={!!actionState}
                                                             startIcon={
-                                                                actionState === 'deleting' ? 
-                                                                <CircularProgress size={16} /> : 
+                                                                actionState === 'deleting' ?
+                                                                <CircularProgress size={16} /> :
                                                                 <DeleteIcon />
                                                             }
-                                                            sx={{ flex: 1, minWidth: '130px' }}
+                                                            sx={{
+                                                                gap: 1.5,
+                                                                '& .MuiButton-startIcon': { margin: '0 !important' },
+                                                                flex: 1,
+                                                                minWidth: '130px',
+                                                            }}
                                                         >
                                                             حذف القناة
                                                         </Button>
-                                                        
+
                                                         <Button
                                                             size="small"
                                                             variant="outlined"
@@ -938,10 +973,132 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                             onClick={() => openAdvancedSettings(channel)}
                                                             disabled={!!actionState}
                                                             startIcon={<SettingsIcon />}
-                                                            sx={{ flex: 1, minWidth: '130px' }}
+                                                            sx={{
+                                                                gap: 1.5,
+                                                                '& .MuiButton-startIcon': { margin: '0 !important' },
+                                                                flex: 1,
+                                                                minWidth: '130px',
+                                                            }}
                                                         >
                                                             إعدادات متقدمة
                                                         </Button>
+
+                                                        <FormControl
+                                                            size="small"
+                                                            variant="outlined"
+                                                            sx={(theme) => ({
+                                                                flex: '1 1 130px',
+                                                                minWidth: '130px',
+                                                                m: 0,
+                                                                verticalAlign: 'middle',
+                                                                '& .MuiOutlinedInput-root': {
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '0.8125rem',
+                                                                    fontWeight: 500,
+                                                                    height: 30.75,
+                                                                    minHeight: 30.75,
+                                                                    boxSizing: 'border-box',
+                                                                },
+                                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                                    borderWidth: 1,
+                                                                    borderRadius: '4px',
+                                                                },
+                                                                /* RTL: النص يبدأ من اليمين؛ المثلث عند طرف السطر (اليسار بصريًا) */
+                                                                '& .MuiSelect-select': {
+                                                                    py: 0,
+                                                                    paddingInlineStart: theme.spacing(1),
+                                                                    paddingInlineEnd: theme.spacing(3.5),
+                                                                    height: '100%',
+                                                                    minHeight: '0 !important',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    lineHeight: 1.43,
+                                                                    boxSizing: 'border-box',
+                                                                    textAlign: 'right',
+                                                                    direction: 'rtl',
+                                                                },
+                                                                '& .MuiSelect-icon': {
+                                                                    fontSize: '1.125rem',
+                                                                    top: '50%',
+                                                                    transform: 'translateY(-50%)',
+                                                                    ...(theme.direction === 'rtl'
+                                                                        ? { left: 6, right: 'auto' }
+                                                                        : { right: 6, left: 'auto' }),
+                                                                },
+                                                            })}
+                                                        >
+                                                            <Select
+                                                                value={pendingQuality[streamKey] ?? normalizeVideoQualityFromApi(channel.video_quality)}
+                                                                onChange={(e) => {
+                                                                    const q = String(e.target.value);
+                                                                    const current = normalizeVideoQualityFromApi(channel.video_quality);
+                                                                    setPendingQuality((prev) => {
+                                                                        if (q === current) {
+                                                                            const next = { ...prev };
+                                                                            delete next[streamKey];
+                                                                            return next;
+                                                                        }
+                                                                        return { ...prev, [streamKey]: q };
+                                                                    });
+                                                                }}
+                                                                disabled={actionState === 'settingQuality'}
+                                                                size="small"
+                                                                displayEmpty
+                                                                renderValue={(v) => (
+                                                                    <Typography
+                                                                        component="span"
+                                                                        dir="rtl"
+                                                                        sx={{
+                                                                            fontSize: '0.8125rem',
+                                                                            lineHeight: 1.43,
+                                                                            overflow: 'hidden',
+                                                                            textOverflow: 'ellipsis',
+                                                                            whiteSpace: 'nowrap',
+                                                                            width: '100%',
+                                                                            textAlign: 'right',
+                                                                        }}
+                                                                    >
+                                                                        <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                                                            الجودة
+                                                                        </Box>
+                                                                        <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500, mx: 0.25 }}>:</Box>
+                                                                        <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                                            {videoQualityShortLabel(v)}
+                                                                        </Box>
+                                                                    </Typography>
+                                                                )}
+                                                                MenuProps={{ PaperProps: { sx: { minWidth: 260 } } }}
+                                                            >
+                                                                {VIDEO_QUALITY_OPTIONS.map((opt) => (
+                                                                    <MenuItem key={opt.value} value={opt.value} dense>
+                                                                        <ListItemText
+                                                                            primary={opt.shortLabel}
+                                                                            secondary={opt.hint}
+                                                                            primaryTypographyProps={{ fontWeight: 700, fontSize: '0.875rem' }}
+                                                                            secondaryTypographyProps={{ variant: 'caption' }}
+                                                                        />
+                                                                    </MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                        {pendingQuality[streamKey] != null && pendingQuality[streamKey] !== normalizeVideoQualityFromApi(channel.video_quality) && (
+                                                            <Button
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="primary"
+                                                                onClick={() => setChannelQuality(streamKey, pendingQuality[streamKey])}
+                                                                disabled={actionState === 'settingQuality'}
+                                                                startIcon={actionState === 'settingQuality' ? <CircularProgress size={16} /> : null}
+                                                                sx={{
+                                                                    gap: 1.5,
+                                                                    '& .MuiButton-startIcon': { margin: '0 !important' },
+                                                                    flex: '0 1 auto',
+                                                                    minWidth: '130px',
+                                                                }}
+                                                            >
+                                                                {actionState === 'settingQuality' ? 'جاري التطبيق...' : 'تطبيق الجودة'}
+                                                            </Button>
+                                                        )}
                                                     </Box>
                                                 </Box>
                                             </ListItem>
@@ -949,10 +1106,25 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     );
                                 })}
                             </List>
+                        )
+                        ) : !isActivated ? (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                                فعّل الخدمة من زر «تفعيل الخدمة» أعلاه لعرض القنوات.
+                            </Typography>
+                        ) : mistServerAvailable === null ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
+                                <CircularProgress size={32} />
+                                <Typography variant="body2" color="text.secondary">
+                                    جاري التحقق من سيرفر المشاهدة…
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                                سيرفر المشاهدة غير جاهز. استخدم «فحص سيرفر المشاهدة» في الشريط أعلاه.
+                            </Typography>
                         )}
                     </CardContent>
                 </Card>
-            )}
 
             {/* قسم التعليمات */}
             <Card sx={{ mt: 3 }} variant="outlined">
@@ -965,12 +1137,12 @@ const StreamingManager = ({ auth, userInfo }) => {
                     </Box>
                     <Box component="ul" sx={{ m: 0, pl: 2.5, pr: 0, listStyle: 'none' }}>
                         <Box component="li" sx={{ mb: 2 }}>
-                            <Typography component="span" fontWeight={700} color="primary.main" sx={{ display: 'inline-block', minWidth: { xs: '100%', sm: 140 }, mb: { xs: 0.25, sm: 0 } }}>تفعيل الاشتراك:</Typography>
-                            <Typography component="span" variant="body2" color="text.secondary">يقوم بمزامنة وطلب تفعيل البث المباشر من مزود الخدمة لدينا.</Typography>
+                            <Typography component="span" fontWeight={700} color="primary.main" sx={{ display: 'inline-block', minWidth: { xs: '100%', sm: 140 }, mb: { xs: 0.25, sm: 0 } }}>تفعيل الخدمة:</Typography>
+                            <Typography component="span" variant="body2" color="text.secondary">من شريط أدوات «القنوات المتاحة» — يمزامن مع مزود الخدمة ويطلب تفعيل البث. يصبح الزر أخضراً عندما تكون الخدمة مفعّلة.</Typography>
                         </Box>
                         <Box component="li" sx={{ mb: 2 }}>
-                            <Typography component="span" fontWeight={700} color="primary.main" sx={{ display: 'inline-block', minWidth: { xs: '100%', sm: 140 }, mb: { xs: 0.25, sm: 0 } }}>اختبار الاتصال:</Typography>
-                            <Typography component="span" variant="body2" color="text.secondary">يقوم بفحص عمل سيرفر الوسائط المحلي وقدرته على استقبال القنوات.</Typography>
+                            <Typography component="span" fontWeight={700} color="primary.main" sx={{ display: 'inline-block', minWidth: { xs: '100%', sm: 140 }, mb: { xs: 0.25, sm: 0 } }}>فحص سيرفر المشاهدة:</Typography>
+                            <Typography component="span" variant="body2" color="text.secondary">يتحقق من جاهزية سيرفر الوسائط المحلي وقدرته على استقبال القنوات.</Typography>
                         </Box>
                         <Box component="li" sx={{ mb: 2 }}>
                             <Typography component="span" fontWeight={700} color="primary.main" sx={{ display: 'inline-block', minWidth: { xs: '100%', sm: 140 }, mb: { xs: 0.25, sm: 0 } }}>ضبط الجودة:</Typography>
@@ -997,6 +1169,55 @@ const StreamingManager = ({ auth, userInfo }) => {
                 )}
                 </>); })()}
             </Paper>
+
+            {/* جودة جميع القنوات — اختيار ثم موافق */}
+            <Dialog
+                open={bulkQualityDialogOpen}
+                onClose={() => !loading && setBulkQualityDialogOpen(false)}
+                maxWidth="xs"
+                fullWidth
+                dir="rtl"
+            >
+                <DialogTitle>جودة البث لجميع القنوات</DialogTitle>
+                <DialogContent dividers>
+                    <RadioGroup
+                        value={bulkQualityDraft}
+                        onChange={(e) => setBulkQualityDraft(String(e.target.value))}
+                    >
+                        {VIDEO_QUALITY_OPTIONS.map((opt) => (
+                            <FormControlLabel
+                                key={opt.value}
+                                value={opt.value}
+                                control={<Radio size="small" />}
+                                label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                        <Typography component="span" sx={{ fontWeight: 700 }}>{opt.shortLabel}</Typography>
+                                        <Typography component="span" variant="body2" color="text.secondary">{opt.hint}</Typography>
+                                    </Box>
+                                }
+                            />
+                        ))}
+                    </RadioGroup>
+                </DialogContent>
+                <DialogActions sx={{ px: 2, py: 1.5, gap: 1 }}>
+                    <Button variant="outlined" size="small" onClick={() => setBulkQualityDialogOpen(false)} disabled={loading}>
+                        إلغاء
+                    </Button>
+                    <Button
+                        variant="contained"
+                        size="small"
+                        onClick={confirmBulkQuality}
+                        disabled={loading || channels.length === 0}
+                        startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
+                        sx={{
+                            gap: 1.5,
+                            '& .MuiButton-startIcon': { margin: '0 !important' },
+                        }}
+                    >
+                        موافق
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* موديال الإعدادات المتقدمة */}
             <Dialog
@@ -1049,6 +1270,10 @@ const StreamingManager = ({ auth, userInfo }) => {
                         onClick={saveAdvancedSettings}
                         disabled={advancedSaving || advancedLoading}
                         startIcon={advancedSaving ? <CircularProgress size={16} /> : <SaveIcon />}
+                        sx={{
+                            gap: 1.5,
+                            '& .MuiButton-startIcon': { margin: '0 !important' },
+                        }}
                     >
                         {advancedSaving ? 'جاري الحفظ...' : 'حفظ'}
                     </Button>

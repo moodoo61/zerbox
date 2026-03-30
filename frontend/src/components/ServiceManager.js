@@ -3,7 +3,7 @@ import Modal from './Modal';
 import {
     Box, Button, Table, TableBody, TableCell, TableContainer, TableHead,
     TableRow, Paper, IconButton, Typography, TextField, Alert, CircularProgress, Link,
-    Tabs, Tab, Card, CardContent, CardActions, Switch, FormControlLabel, Chip, Divider
+    Tabs, Tab, Card, CardContent, Switch, FormControlLabel, Chip
 } from '@mui/material';
 import { 
     Edit as EditIcon, 
@@ -297,7 +297,9 @@ const ServiceManager = ({ auth, userInfo }) => {
         }
     };
 
-    const getServiceIcon = (serviceName, iconUrl) => {
+    const getServiceIcon = (serviceName, iconUrl, large = false) => {
+        const imgSize = large ? 112 : 40;
+        const iconSize = large ? 80 : 40;
         if (iconUrl) {
             return (
                 <Box 
@@ -305,20 +307,20 @@ const ServiceManager = ({ auth, userInfo }) => {
                     src={iconUrl} 
                     alt={serviceName}
                     sx={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 1,
+                        width: imgSize, 
+                        height: imgSize, 
+                        borderRadius: 2,
                         objectFit: 'cover'
                     }} 
                 />
             );
         }
         if (serviceName.includes('قرآن') || serviceName.includes('القرآن')) {
-            return <MenuBookIcon sx={{ fontSize: 40, color: 'success.main' }} />;
+            return <MenuBookIcon sx={{ fontSize: iconSize, color: 'success.main' }} />;
         } else if (serviceName.includes('قافية')) {
-            return <LanguageIcon sx={{ fontSize: 40, color: 'primary.main' }} />;
+            return <LanguageIcon sx={{ fontSize: iconSize, color: 'primary.main' }} />;
         }
-        return <SettingsIcon sx={{ fontSize: 40, color: 'text.secondary' }} />;
+        return <SettingsIcon sx={{ fontSize: iconSize, color: 'text.secondary' }} />;
     };
 
     // Default service edit functions
@@ -434,9 +436,6 @@ const ServiceManager = ({ auth, userInfo }) => {
                         {defaultServiceError && <Alert severity="error" sx={{ mb: 2 }}>{defaultServiceError}</Alert>}
                         {defaultServiceSuccess && <Alert severity="success" sx={{ mb: 2 }}>{defaultServiceSuccess}</Alert>}
                         
-                        <Typography variant="h6" gutterBottom>
-                            الخدمات الافتراضية المثبتة
-                        </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                             خدمات مثبته في السيرفر يمكنك ادرتها من هنا ( تفعيل / تعطيل – إيقاف / تشغيل – إعادة تشغيل – تغير المسميات والوصف والصور )
                         </Typography>
@@ -446,111 +445,231 @@ const ServiceManager = ({ auth, userInfo }) => {
                                 const actionState = serviceActions[service.id];
                                 
                                 return (
-                                    <Card key={service.id} variant="outlined">
-                                        <CardContent>
-                                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                                                {getServiceIcon(service.name, service.icon_url)}
-                                                
-                                                <Box sx={{ flex: 1 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                                        <Typography variant="h6" component="h3">
-                                                            {service.name}
-                                                        </Typography>
-                                                        
-                                                        <Chip 
-                                                            label={service.is_active ? 'مفعلة' : 'معطلة'} 
-                                                            color={service.is_active ? 'success' : 'default'}
-                                                            size="small"
-                                                        />
-                                                        
-                                                        {service.is_running && (
-                                                            <Chip 
-                                                                label="تعمل" 
-                                                                color="primary"
-                                                                size="small"
-                                                                variant="outlined"
-                                                            />
-                                                        )}
-                                                    </Box>
-                                                    
-                                                    <Typography variant="body2" color="text.secondary" paragraph>
-                                                        {service.description}
-                                                    </Typography>
-                                                    
-                                                    {service.url && (
-                                                        <Link 
-                                                            href={service.url} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            sx={{ display: 'block', mt: 1 }}
+                                    <Card key={service.id} variant="outlined" sx={{ overflow: 'hidden' }}>
+                                        <CardContent
+                                            sx={{
+                                                p: 0,
+                                                width: '100%',
+                                                '&.MuiCardContent-root': { padding: 0, paddingBottom: '0 !important' },
+                                                '&.MuiCardContent-root:last-child': { paddingBottom: '0 !important' },
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'stretch',
+                                                    flexDirection: { xs: 'column', sm: 'row' },
+                                                    width: '100%',
+                                                    minHeight: { sm: 168 },
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        width: { xs: '100%', sm: 168 },
+                                                        flexShrink: 0,
+                                                        alignSelf: 'stretch',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        minHeight: { xs: 160, sm: 0 },
+                                                        overflow: 'hidden',
+                                                        bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'grey.100'),
+                                                        borderBottom: { xs: 1, sm: 0 },
+                                                        borderInlineEnd: { xs: 0, sm: 1 },
+                                                        borderColor: 'divider',
+                                                    }}
+                                                >
+                                                    {service.icon_url ? (
+                                                        <Box
+                                                            sx={{
+                                                                position: 'relative',
+                                                                flex: 1,
+                                                                width: '100%',
+                                                                minHeight: { xs: 160, sm: 0 },
+                                                                alignSelf: 'stretch',
+                                                            }}
                                                         >
-                                                            {service.url}
-                                                        </Link>
+                                                            <Box
+                                                                component="img"
+                                                                src={service.icon_url}
+                                                                alt={service.name}
+                                                                sx={{
+                                                                    position: 'absolute',
+                                                                    inset: 0,
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'cover',
+                                                                    objectPosition: 'center',
+                                                                    display: 'block',
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    ) : (
+                                                        <Box
+                                                            sx={{
+                                                                flex: 1,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                minHeight: { xs: 160, sm: 200 },
+                                                                p: 2.5,
+                                                            }}
+                                                        >
+                                                            {getServiceIcon(service.name, null, true)}
+                                                        </Box>
                                                     )}
                                                 </Box>
-                                                
-                                                <IconButton 
-                                                    onClick={() => handleEditDefaultService(service)} 
-                                                    color="primary"
-                                                    size="small"
+                                                <Box
+                                                    sx={{
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                        width: { sm: '100%' },
+                                                        p: 2.5,
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'stretch',
+                                                        justifyContent: 'flex-start',
+                                                    }}
                                                 >
-                                                    <EditIcon />
-                                                </IconButton>
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'flex-start',
+                                                            justifyContent: 'space-between',
+                                                            gap: 2,
+                                                            width: '100%',
+                                                            mb: 1,
+                                                        }}
+                                                    >
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
+                                                            <Typography variant="h6" component="h3">
+                                                                {service.name}
+                                                            </Typography>
+                                                            <IconButton 
+                                                                onClick={() => handleEditDefaultService(service)} 
+                                                                color="primary"
+                                                                size="small"
+                                                                aria-label="تعديل الخدمة"
+                                                            >
+                                                                <EditIcon />
+                                                            </IconButton>
+                                                        </Box>
+                                                        <Chip 
+                                                            label={service.is_running ? 'تعمل' : 'لا تعمل'}
+                                                            color={service.is_running ? 'success' : 'error'}
+                                                            size="small"
+                                                            variant="filled"
+                                                            sx={{ flexShrink: 0 }}
+                                                        />
+                                                    </Box>
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexDirection: { xs: 'column', sm: 'row' },
+                                                            alignItems: { xs: 'center', sm: 'flex-start' },
+                                                            justifyContent: { xs: 'center', sm: 'space-between' },
+                                                            gap: { xs: 1, sm: 2 },
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <Typography
+                                                            variant="body2"
+                                                            color="text.secondary"
+                                                            sx={{
+                                                                mb: 0,
+                                                                flex: { sm: '1 1 auto' },
+                                                                minWidth: 0,
+                                                                textAlign: { xs: 'center', sm: 'start' },
+                                                                width: { xs: '100%', sm: 'auto' },
+                                                            }}
+                                                        >
+                                                            {service.description}
+                                                        </Typography>
+                                                        {service.url && (
+                                                            <Link 
+                                                                href={service.url} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                sx={{
+                                                                    display: 'block',
+                                                                    flexShrink: 0,
+                                                                    maxWidth: { sm: '48%' },
+                                                                    textAlign: { xs: 'center', sm: 'end' },
+                                                                    wordBreak: 'break-all',
+                                                                    alignSelf: { xs: 'center', sm: 'center' },
+                                                                    width: { xs: '100%', sm: 'auto' },
+                                                                }}
+                                                            >
+                                                                {service.url}
+                                                            </Link>
+                                                        )}
+                                                    </Box>
+                                                    <Box
+                                                        component="div"
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            flexWrap: 'wrap',
+                                                            gap: 1.5,
+                                                            width: '100%',
+                                                            mt: 2,
+                                                            pt: 2,
+                                                            borderTop: 1,
+                                                            borderColor: 'divider',
+                                                            boxSizing: 'border-box',
+                                                        }}
+                                                    >
+                                                        <FormControlLabel
+                                                            control={
+                                                                <Switch 
+                                                                    checked={service.is_active} 
+                                                                    onChange={() => toggleDefaultService(service.id)}
+                                                                    disabled={!!actionState}
+                                                                />
+                                                            }
+                                                            label={service.is_active ? "مفعلة" : "معطلة"}
+                                                            sx={{ m: 0 }}
+                                                        />
+                                                        {service.is_running ? (
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={
+                                                                    actionState === 'stopping' ? <CircularProgress size={16} /> : <StopIcon />
+                                                                }
+                                                                onClick={() => stopDefaultService(service.id)}
+                                                                disabled={!service.is_active || !!actionState}
+                                                                color="error"
+                                                            >
+                                                                إيقاف
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={
+                                                                    actionState === 'starting' ? <CircularProgress size={16} /> : <PlayIcon />
+                                                                }
+                                                                onClick={() => startDefaultService(service.id)}
+                                                                disabled={!service.is_active || !!actionState}
+                                                                color="success"
+                                                            >
+                                                                تشغيل
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="small"
+                                                            startIcon={
+                                                                actionState === 'restarting' ? <CircularProgress size={16} /> : <RefreshIcon />
+                                                            }
+                                                            onClick={() => restartDefaultService(service.id)}
+                                                            disabled={!service.is_active || !!actionState}
+                                                            color="primary"
+                                                        >
+                                                            إعادة تشغيل
+                                                        </Button>
+                                                    </Box>
+                                                </Box>
                                             </Box>
                                         </CardContent>
-                                        
-                                        <CardActions>
-                                            <FormControlLabel
-                                                control={
-                                                    <Switch 
-                                                        checked={service.is_active} 
-                                                        onChange={() => toggleDefaultService(service.id)}
-                                                        disabled={!!actionState}
-                                                    />
-                                                }
-                                                label={service.is_active ? "مفعلة" : "معطلة"}
-                                            />
-                                            
-                                            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-                                            
-                                            {service.is_running ? (
-                                                <Button
-                                                    size="small"
-                                                    startIcon={
-                                                        actionState === 'stopping' ? <CircularProgress size={16} /> : <StopIcon />
-                                                    }
-                                                    onClick={() => stopDefaultService(service.id)}
-                                                    disabled={!service.is_active || !!actionState}
-                                                    color="error"
-                                                >
-                                                    إيقاف
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    size="small"
-                                                    startIcon={
-                                                        actionState === 'starting' ? <CircularProgress size={16} /> : <PlayIcon />
-                                                    }
-                                                    onClick={() => startDefaultService(service.id)}
-                                                    disabled={!service.is_active || !!actionState}
-                                                    color="success"
-                                                >
-                                                    تشغيل
-                                                </Button>
-                                            )}
-                                            
-                                            <Button
-                                                size="small"
-                                                startIcon={
-                                                    actionState === 'restarting' ? <CircularProgress size={16} /> : <RefreshIcon />
-                                                }
-                                                onClick={() => restartDefaultService(service.id)}
-                                                disabled={!service.is_active || !!actionState}
-                                                color="primary"
-                                            >
-                                                إعادة تشغيل
-                                            </Button>
-                                        </CardActions>
                                     </Card>
                                 );
                             })}

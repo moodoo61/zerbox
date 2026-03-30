@@ -3,12 +3,11 @@ import {
     Box, Typography, Switch, FormControlLabel, TextField, Button,
     Grid, Card, CardContent, Alert, CircularProgress, Chip,
     Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText,
-    ListItemIcon, ListItemSecondaryAction, Divider, Slider
+    ListItemIcon, Divider, Slider
 } from '@mui/material';
 import {
     Save as SaveIcon,
     Visibility as VisibilityIcon,
-    VisibilityOff as VisibilityOffIcon,
     LiveTv as LiveTvIcon,
     Launch as LaunchIcon,
     Refresh as RefreshIcon,
@@ -188,36 +187,21 @@ const ViewerPageManager = ({ auth }) => {
             {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-            {/* بطاقة التفعيل */}
+            {/* الإعدادات الأساسية */}
             <Card sx={{ mb: 3 }}>
                 <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6">تفعيل صفحة المشاهدة للزوار</Typography>
-                        <Chip
-                            icon={settings.is_enabled ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                            label={settings.is_enabled ? 'مفعل' : 'معطل'}
-                            color={settings.is_enabled ? 'success' : 'default'}
-                            size="small"
-                        />
-                    </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={settings.is_enabled}
-                                        onChange={(e) => handleSettingChange('is_enabled', e.target.checked)}
-                                    />
-                                }
-                                label={settings.is_enabled ? 'الصفحة مفعلة' : 'الصفحة معطلة'}
-                            />
-                            {settings.is_enabled && (
-                                <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                    {getViewerPageUrl()}
-                                </Typography>
-                            )}
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 1.5,
+                            mb: 2,
+                        }}
+                    >
+                        <Typography variant="h6">الإعدادات الأساسية</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                             <Button
                                 variant="outlined"
                                 size="small"
@@ -227,27 +211,37 @@ const ViewerPageManager = ({ auth }) => {
                             >
                                 تحديث
                             </Button>
-                            {settings.is_enabled && (
-                                <Button
-                                    variant="outlined"
-                                    size="small"
-                                    startIcon={<LaunchIcon />}
-                                    onClick={openViewerPage}
-                                >
-                                    معاينة الصفحة
-                                </Button>
-                            )}
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<LaunchIcon />}
+                                onClick={openViewerPage}
+                                disabled={!settings.is_enabled}
+                            >
+                                معاينة الصفحة
+                            </Button>
                         </Box>
                     </Box>
-                </CardContent>
-            </Card>
-
-            {/* الإعدادات الأساسية */}
-            <Card sx={{ mb: 3 }}>
-                <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>الإعدادات الأساسية</Typography>
                     <Divider sx={{ mb: 2 }} />
                     <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.is_enabled}
+                                            onChange={(e) => handleSettingChange('is_enabled', e.target.checked)}
+                                        />
+                                    }
+                                    label={settings.is_enabled ? 'تفعيل صفحة المشاهدة للزوار — مفعلة' : 'تفعيل صفحة المشاهدة للزوار — معطلة'}
+                                />
+                                {settings.is_enabled && (
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                        {getViewerPageUrl()}
+                                    </Typography>
+                                )}
+                            </Box>
+                        </Grid>
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth

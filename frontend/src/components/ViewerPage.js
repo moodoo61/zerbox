@@ -14,29 +14,6 @@ import MatchesTable from './MatchesTable';
 import useMistStreamStatus from '../hooks/useMistStreamStatus';
 import './ViewerPage.css';
 
-/* ── Gradient palette for channels without logos ── */
-const CHANNEL_GRADIENTS = [
-    ['#1e3a8a', '#3b82f6'],
-    ['#4c1d95', '#8b5cf6'],
-    ['#064e3b', '#10b981'],
-    ['#7c2d12', '#f97316'],
-    ['#831843', '#ec4899'],
-    ['#1e3a5f', '#2563eb'],
-    ['#3b0764', '#a855f7'],
-    ['#0f172a', '#6366f1'],
-];
-
-function getChannelGradient(id, name) {
-    const seed = id ?? (name ? name.charCodeAt(0) : 0);
-    const pair = CHANNEL_GRADIENTS[seed % CHANNEL_GRADIENTS.length];
-    return `linear-gradient(145deg, ${pair[0]}, ${pair[1]})`;
-}
-
-function getChannelInitial(name) {
-    if (!name) return '•';
-    return name.trim().charAt(0).toUpperCase();
-}
-
 /* ═══════════════════════════════════════════════════════
    ViewerPage
    ═══════════════════════════════════════════════════════ */

@@ -1,0 +1,22 @@
+[Unit]
+Description=Zero - قافية (منصة الشعر العربي)
+Documentation=file:///root/Zero/QUICK_START.md
+After=network.target
+
+[Service]
+Type=simple
+# جذر المشروع (يُستبدل بمسارك الفعلي عبر install-services.sh)
+WorkingDirectory=/root/Zero/qafiyah
+Environment=ZERO_ROOT=/root/Zero
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# يجب التشغيل من جذر الـ monorepo عبر pnpm --filter؛ لا تستخدم npm داخل apps/web وحدها.
+ExecStart=/root/Zero/deploy/qafiyah-systemd-start.sh
+Restart=on-failure
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zero-qafiyah
+
+[Install]
+WantedBy=multi-user.target

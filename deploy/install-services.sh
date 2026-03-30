@@ -1,7 +1,7 @@
 
 
 #!/bin/bash
-# تثبيت وحدات systemd (zero و zero-network-helper) مع مسار المشروع الحالي
+# تثبيت وحدات systemd (zero، zero-network-helper، zero-quran، zero-qafiyah) مع مسار المشروع الحالي
 # + إصلاح netplan لاستخدام NetworkManager (مطلوب لإدارة الشبكة من الواجهة)
 # الاستخدام: من جذر المشروع: ./deploy/install-services.sh
 # أو: ZERO_ROOT=/path/to/Zero ./deploy/install-services.sh
@@ -131,7 +131,8 @@ fi
 
 # --- تثبيت ملفات الخدمة ---
 echo ""
-for name in zero zero-network-helper; do
+chmod +x "$ZERO_ROOT/deploy/qafiyah-systemd-start.sh" 2>/dev/null || true
+for name in zero zero-network-helper zero-quran zero-qafiyah; do
   src="$ZERO_ROOT/deploy/${name}.service"
   if [ ! -f "$src" ]; then
     echo "تحذير: الملف غير موجود: $src"
@@ -145,14 +146,23 @@ done
 
 sudo systemctl daemon-reload
 echo ""
-echo "تفعيل التشغيل التلقائي وتشغيل الخدمات..."
-for name in zero zero-network-helper; do
+echo "تفعيل التشغيل التلقائي..."
+for name in zero zero-network-helper zero-quran zero-qafiyah; do
   if [ -f "/etc/systemd/system/${name}.service" ]; then
     if sudo systemctl enable "$name" 2>/dev/null; then echo "  تم تفعيل: $name"; else echo "  تحذير: فشل enable $name"; fi
+  fi
+done
+echo ""
+echo "تشغيل الخدمات الرئيسية (zero و zero-network-helper فقط)..."
+for name in zero zero-network-helper; do
+  if [ -f "/etc/systemd/system/${name}.service" ]; then
     if sudo systemctl restart "$name" 2>/dev/null; then echo "  تم تشغيل: $name"; else echo "  تحذير: فشل start $name"; fi
   fi
 done
 echo ""
+echo "  ملاحظة: zero-quran و zero-qafiyah مُفعّلان للإقلاع ولكن لا يُعاد تشغيلهما هنا تلقائياً؛"
+echo "       شغّلهما من لوحة التحكم أو: sudo systemctl start zero-quran zero-qafiyah"
+echo ""
 echo "تم التثبيت والتفعيل."
-echo "  للتحقق: sudo systemctl status zero zero-network-helper"
+echo "  للتحقق: sudo systemctl status zero zero-network-helper zero-quran zero-qafiyah"
 echo "=========================================="

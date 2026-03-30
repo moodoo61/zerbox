@@ -1,0 +1,20 @@
+[Unit]
+Description=Zero - تطبيق القرآن الكريم (واجهة ويب)
+Documentation=file:///root/Zero/QUICK_START.md
+After=network.target
+
+[Service]
+Type=simple
+# استبدل /root/Zero بمسار مشروعك إن لزم (مثل deploy/install-services.sh)
+WorkingDirectory=/root/Zero/quran
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/npm run serve -- --port 8081
+Restart=on-failure
+RestartSec=3
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zero-quran
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     Box, Typography, Button, Paper, CircularProgress, Alert,
     LinearProgress, Chip, Divider, List, ListItem, ListItemIcon,
@@ -38,7 +38,7 @@ const UpdateTab = ({ auth }) => {
     const [error, setError] = useState(null);
     const pollRef = useRef(null);
 
-    const headers = { 'Authorization': `Basic ${auth}` };
+    const headers = useMemo(() => ({ Authorization: `Basic ${auth}` }), [auth]);
 
     useEffect(() => {
         fetch('/api/system/version')
@@ -62,7 +62,7 @@ const UpdateTab = ({ auth }) => {
         } finally {
             setChecking(false);
         }
-    }, [auth]);
+    }, [headers]);
 
     const pollUpdateStatus = useCallback(async () => {
         try {
@@ -86,7 +86,7 @@ const UpdateTab = ({ auth }) => {
         } catch {
             // الخادم قد يكون يعيد التشغيل
         }
-    }, [auth]);
+    }, [headers]);
 
     const startUpdate = async () => {
         setShowConfirm(false);

@@ -25,16 +25,12 @@ frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
 
-# Quran subproject
-quran/node_modules/
-quran/dist/
-
-# Qafiyah
-qafiyah/node_modules/
-qafiyah/apps/*/node_modules/
-qafiyah/packages/*/node_modules/
+# القرآن وقافية — لا يُرفع محتواهما إلى GitHub (يُستنسخان محلياً أو عبر سكربت النشر)
+/quran/
+/qafiyah/
 
 # Misc
 .DS_Store
 *.tar.gz
 .deploy-exclude-list
+qafiyah.zip
