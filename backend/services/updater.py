@@ -67,13 +67,13 @@ def check_for_updates() -> dict:
                 "has_update": False,
                 "current_version": current,
                 "latest_version": current,
-                "message": "لا توجد إصدارات منشورة على المستودع بعد",
+                "message": "لا توجد إصدارات منشورة  بعد",
             }
         if not resp.ok:
             return {
                 "has_update": False,
                 "current_version": current,
-                "error": f"فشل الاتصال بـ GitHub: {resp.status_code}",
+                "error": f"فشل الاتصال بـ : {resp.status_code}",
             }
         data = resp.json()
         latest_tag = data.get("tag_name", "")
@@ -132,7 +132,7 @@ def _run_cmd(cmd: list, cwd: str = None, timeout: int = 300) -> tuple:
 def _do_update(target_version: str):
     """تنفيذ عملية التحديث في خيط خلفي."""
     try:
-        _set_state("updating", 5, "جاري جلب التحديثات من المستودع...", "git_fetch")
+        _set_state("updating", 5, "جاري جلب التحديثات من ...", "git_fetch")
 
         ok, out = _run_cmd(["git", "fetch", "origin"])
         if not ok:

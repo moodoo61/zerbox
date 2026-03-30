@@ -130,13 +130,12 @@ def _build_advanced_cfg(channel: models.Channel) -> dict:
     }
 
 
-def _apply_channel_quality(db: Session, channel: models.Channel, quality: int) -> None:
+def _apply_channel_quality(db: Session, channel: models.Channel, quality) -> None:
     """تحديث جودة قناة واحدة في DB و MistServer (حذف وإعادة إضافة بالرابط الجديد)."""
-    if quality not in (1, 2, 3):
-        raise ValueError("الجودة يجب أن تكون 1 أو 2 أو 3")
-    channel.video_quality = quality
+    q = services.normalize_video_quality(quality)
+    channel.video_quality = q
     stream_key = channel.stream_key or channel.name
-    source_url = services.build_source_url_with_quality(channel.url, quality)
+    source_url = services.build_source_url_with_quality(channel.url, q)
     services.delete_mistserver_stream(stream_key)
     services.create_mistserver_stream(stream_key, source_url, _build_advanced_cfg(channel))
     db.add(channel)
@@ -223,7 +222,8 @@ def refresh_streaming_channels(
                 existing_channel = db.exec(
                     select(models.Channel).where(models.Channel.stream_key == stream_key)
                 ).first()
-                quality = getattr(existing_channel, "video_quality", 2) if existing_channel else 2
+                vq = getattr(existing_channel, "video_quality", None) if existing_channel else None
+                quality = services.normalize_video_quality(vq)
                 source_url = services.build_source_url_with_quality(stream_url, quality)
 
                 if existing_channel:
@@ -247,7 +247,7 @@ def refresh_streaming_channels(
                         sort_order=i,
                         is_active=True,
                         stream_key=stream_key,
-                        video_quality=2
+                        video_quality=services.DEFAULT_VIDEO_QUALITY
                     )
                     db.add(channel)
                     added_count += 1
@@ -405,12 +405,15 @@ def set_channel_quality(
     username: str = Depends(check_auth)
 ):
     """
-    Set video quality for a single channel (1=اعلى، 2=متوسطة، 3=منخفضة).
+    Set video quality for a single channel (1280x720، 854x480، 512x288).
     """
     try:
         quality = body.get("quality")
-        if quality is None or quality not in (1, 2, 3):
-            return {"status": "error", "message": "يجب تحديد الجودة: 1 أو 2 أو 3"}
+        try:
+            q = services.normalize_video_quality(quality)
+        except ValueError:
+            opts = "، ".join(services.VIDEO_QUALITY_DIMENSIONS)
+            return {"status": "error", "message": f"يجب تحديد الجودة: {opts}"}
         channel = db.exec(
             select(models.Channel).where(
                 (models.Channel.name == channel_name) | (models.Channel.stream_key == channel_name)
@@ -418,9 +421,10 @@ def set_channel_quality(
         ).first()
         if not channel:
             return {"status": "error", "message": f"القناة {channel_name} غير موجودة"}
-        _apply_channel_quality(db, channel, quality)
+        _apply_channel_quality(db, channel, q)
         db.commit()
-        return {"status": "success", "message": f"تم ضبط جودة القناة {channel.name} إلى {'اعلى' if quality == 1 else 'متوسطة' if quality == 2 else 'منخفضة'}"}
+        disp = q.replace("x", "×")
+        return {"status": "success", "message": f"تم ضبط جودة القناة {channel.name} إلى {disp}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -432,19 +436,22 @@ def set_all_channels_quality(
     username: str = Depends(check_auth)
 ):
     """
-    Set video quality for all channels (1=اعلى، 2=متوسطة، 3=منخفضة).
+    Set video quality for all channels (1280x720، 854x480، 512x288).
     """
     try:
         quality = body.get("quality")
-        if quality is None or quality not in (1, 2, 3):
-            return {"status": "error", "message": "يجب تحديد الجودة: 1 أو 2 أو 3"}
+        try:
+            q = services.normalize_video_quality(quality)
+        except ValueError:
+            opts = "، ".join(services.VIDEO_QUALITY_DIMENSIONS)
+            return {"status": "error", "message": f"يجب تحديد الجودة: {opts}"}
         channels = db.exec(select(models.Channel)).all()
         if not channels:
             return {"status": "error", "message": "لا توجد قنوات"}
         for ch in channels:
-            _apply_channel_quality(db, ch, quality)
+            _apply_channel_quality(db, ch, q)
         db.commit()
-        label = "اعلى" if quality == 1 else "متوسطة" if quality == 2 else "منخفضة"
+        label = q.replace("x", "×")
         return {"status": "success", "message": f"تم ضبط جودة جميع القنوات ({len(channels)}) إلى {label}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -502,7 +509,9 @@ def set_channel_advanced_settings(
                 setattr(channel, field, bool(body[field]))
 
         stream_key = channel.stream_key or channel.name
-        source_url = services.build_source_url_with_quality(channel.url, channel.video_quality)
+        source_url = services.build_source_url_with_quality(
+            channel.url, services.normalize_video_quality(channel.video_quality)
+        )
         services.delete_mistserver_stream(stream_key)
         services.create_mistserver_stream(stream_key, source_url, _build_advanced_cfg(channel))
         db.add(channel)
@@ -530,7 +539,9 @@ def apply_defaults_advanced(
             ch.always_on = False
             ch.raw = False
             stream_key = ch.stream_key or ch.name
-            source_url = services.build_source_url_with_quality(ch.url, ch.video_quality)
+            source_url = services.build_source_url_with_quality(
+                ch.url, services.normalize_video_quality(ch.video_quality)
+            )
             services.delete_mistserver_stream(stream_key)
             services.create_mistserver_stream(stream_key, source_url, _build_advanced_cfg(ch))
             db.add(ch)

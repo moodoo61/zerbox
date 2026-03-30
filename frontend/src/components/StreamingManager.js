@@ -30,6 +30,39 @@ function _getPerms(userInfo) {
 }
 function _subVisible(perms, key) { if (!perms) return true; const p = perms[key]; return !p || p.visible !== false; }
 
+/** القيم value يجب أن تبقى أبعادًا — الخادم يبني رابط المصدر بـ video=1280x720 إلخ */
+const VIDEO_QUALITY_OPTIONS = [
+    { value: '1280x720', shortLabel: '720P', hint: 'جودة عالية' },
+    { value: '854x480', shortLabel: '480P', hint: 'متوسطة' },
+    { value: '512x288', shortLabel: '288P', hint: 'منخفضة' },
+];
+const DEFAULT_VIDEO_QUALITY = '854x480';
+
+function videoQualityShortLabel(value) {
+    const opt = VIDEO_QUALITY_OPTIONS.find((o) => o.value === value);
+    return opt ? opt.shortLabel : VIDEO_QUALITY_OPTIONS[1].shortLabel;
+}
+
+/** عناصر القائمة: اسم عريض + نص توضيحي */
+function VideoQualityMenuItems() {
+    return VIDEO_QUALITY_OPTIONS.map((opt) => (
+        <MenuItem key={opt.value} value={opt.value} sx={{ py: 1.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', width: '100%' }}>
+                <Typography component="span" sx={{ fontWeight: 700 }}>{opt.shortLabel}</Typography>
+                <Typography component="span" variant="body2" color="text.secondary">{opt.hint}</Typography>
+            </Box>
+        </MenuItem>
+    ));
+}
+
+function normalizeVideoQualityFromApi(q) {
+    if (q === 1 || q === '1') return '1280x720';
+    if (q === 2 || q === '2') return '854x480';
+    if (q === 3 || q === '3') return '512x288';
+    if (VIDEO_QUALITY_OPTIONS.some((o) => o.value === q)) return q;
+    return DEFAULT_VIDEO_QUALITY;
+}
+
 const StreamingManager = ({ auth, userInfo }) => {
     const [streamingTab, setStreamingTab] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -45,7 +78,7 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [channelActions, setChannelActions] = useState({});
     const [mistServerAvailable, setMistServerAvailable] = useState(null); // null=checking, true/false
     const [mistServerMessage, setMistServerMessage] = useState(null);
-    const [defaultQuality, setDefaultQuality] = useState(2); // 1=اعلى، 2=متوسطة، 3=منخفضة
+    const [defaultQuality, setDefaultQuality] = useState(DEFAULT_VIDEO_QUALITY);
     const [pendingQuality, setPendingQuality] = useState({}); // streamKey -> quality (عند اختيار جودة مختلفة تظهر زر التطبيق)
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const [advancedChannel, setAdvancedChannel] = useState(null); // {name, stream_key}
@@ -228,8 +261,12 @@ const StreamingManager = ({ auth, userInfo }) => {
                 headers: { 'Authorization': `Basic ${auth}` }
             });
             if (response.ok) {
-                const data = await response.json();
-                setChannels(data);
+                const raw = await response.json();
+                const data = Array.isArray(raw) ? raw : [];
+                setChannels(data.map((ch) => ({
+                    ...ch,
+                    video_quality: normalizeVideoQualityFromApi(ch.video_quality),
+                })));
             }
         } catch (err) {
             console.error('Error fetching channels:', err);
@@ -453,16 +490,17 @@ const StreamingManager = ({ auth, userInfo }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Basic ${auth}`
                 },
-                body: JSON.stringify({ quality: Number(quality) })
+                body: JSON.stringify({ quality: String(quality) })
             });
             const data = await response.json();
             if (data.status === 'success') {
                 setSuccess(data.message);
                 setPendingQuality(prev => { const next = { ...prev }; delete next[key]; return next; });
+                const vq = normalizeVideoQualityFromApi(quality);
                 setChannels(prev => prev.map(ch => {
                     const name = ch.name || ch.stream_key;
                     if (name === channelName || ch.stream_key === channelName) {
-                        return { ...ch, video_quality: Number(quality) };
+                        return { ...ch, video_quality: vq };
                     }
                     return ch;
                 }));
@@ -699,16 +737,20 @@ const StreamingManager = ({ auth, userInfo }) => {
                                 <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
                                     خيارات الجودة
                                 </Typography>
-                                <FormControl size="small" sx={{ minWidth: 140 }} variant="outlined">
+                                <FormControl size="small" sx={{ minWidth: 160 }} variant="outlined">
                                     <Select
                                         value={defaultQuality}
-                                        onChange={(e) => setDefaultQuality(Number(e.target.value))}
+                                        onChange={(e) => setDefaultQuality(String(e.target.value))}
                                         displayEmpty
                                         size="small"
+                                        renderValue={(v) => (
+                                            <Typography component="span" sx={{ fontWeight: 700 }}>
+                                                {videoQualityShortLabel(v)}
+                                            </Typography>
+                                        )}
+                                        MenuProps={{ PaperProps: { sx: { minWidth: 240 } } }}
                                     >
-                                        <MenuItem value={1}>اعلى جودة</MenuItem>
-                                        <MenuItem value={2}>متوسطة</MenuItem>
-                                        <MenuItem value={3}>منخفضة</MenuItem>
+                                        <VideoQualityMenuItems />
                                     </Select>
                                 </FormControl>
                                 <Button
@@ -788,12 +830,12 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                                                                 الجودة
                                                             </Typography>
-                                                            <FormControl size="small" sx={{ minWidth: 120 }} variant="outlined">
+                                                            <FormControl size="small" sx={{ minWidth: 140 }} variant="outlined">
                                                                 <Select
-                                                                    value={pendingQuality[streamKey] ?? channel.video_quality ?? 2}
+                                                                    value={pendingQuality[streamKey] ?? normalizeVideoQualityFromApi(channel.video_quality)}
                                                                     onChange={(e) => {
-                                                                        const q = Number(e.target.value);
-                                                                        const current = channel.video_quality ?? 2;
+                                                                        const q = String(e.target.value);
+                                                                        const current = normalizeVideoQualityFromApi(channel.video_quality);
                                                                         if (q === current) {
                                                                             setPendingQuality(prev => { const next = { ...prev }; delete next[streamKey]; return next; });
                                                                         } else {
@@ -802,13 +844,17 @@ const StreamingManager = ({ auth, userInfo }) => {
                                                                     }}
                                                                     disabled={channelActions[channelName] === 'settingQuality'}
                                                                     size="small"
+                                                                    renderValue={(v) => (
+                                                                        <Typography component="span" sx={{ fontWeight: 700 }}>
+                                                                            {videoQualityShortLabel(v)}
+                                                                        </Typography>
+                                                                    )}
+                                                                    MenuProps={{ PaperProps: { sx: { minWidth: 240 } } }}
                                                                 >
-                                                                    <MenuItem value={1}>اعلى</MenuItem>
-                                                                    <MenuItem value={2}>متوسطة</MenuItem>
-                                                                    <MenuItem value={3}>منخفضة</MenuItem>
+                                                                    <VideoQualityMenuItems />
                                                                 </Select>
                                                             </FormControl>
-                                                            {pendingQuality[streamKey] != null && pendingQuality[streamKey] !== (channel.video_quality ?? 2) && (
+                                                            {pendingQuality[streamKey] != null && pendingQuality[streamKey] !== normalizeVideoQualityFromApi(channel.video_quality) && (
                                                                 <Button
                                                                     size="small"
                                                                     variant="contained"

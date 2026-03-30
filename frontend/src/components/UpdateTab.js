@@ -125,7 +125,7 @@ const UpdateTab = ({ auth }) => {
                 <UpdateIcon color="primary" /> تحديث النظام
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                فحص وتنزيل تحديثات النظام من مستودع GitHub.
+                فحص وتنزيل تحديثات النظام من .
             </Typography>
 
             {/* الإصدار الحالي */}

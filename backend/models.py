@@ -137,7 +137,7 @@ class ChannelBase(SQLModel):
     is_active: bool = True
     sort_order: int = 0
     stream_key: Optional[str] = None  # اسم القناة في MistServer (ch11, ch12, etc.)
-    video_quality: int = 2  # 1=اعلى، 2=متوسطة، 3=منخفضة (&video=X في رابط البث)
+    video_quality: str = "854x480"  # 1280x720 | 854x480 | 512x288 → video=<أبعاد> في رابط المصدر
     dvr: int = 200000  # Buffer time (ms)
     pagetimeout: int = 90  # Memory page timeout
     maxkeepaway: int = 90000  # Maximum live keep-away distance
@@ -166,7 +166,7 @@ class ChannelUpdate(SQLModel):
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
     stream_key: Optional[str] = None
-    video_quality: Optional[int] = None
+    video_quality: Optional[str] = None
     dvr: Optional[int] = None
     pagetimeout: Optional[int] = None
     maxkeepaway: Optional[int] = None

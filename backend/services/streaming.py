@@ -202,13 +202,13 @@ def activate_streaming_service(db: Session, subscription_data=None) -> models.St
                     display_name = channel_name
                 if not stream_url:
                     continue
-                source_url = build_source_url_with_quality(stream_url, 2)
+                source_url = build_source_url_with_quality(stream_url, "854x480")
                 try:
                     create_mistserver_stream(channel_name, source_url, _DEFAULT_ADVANCED)
                     mistserver_success.append(channel_name)
                 except Exception as e:
                     failed_channels.append(f"{channel_name}: {e}")
-                channel = models.Channel(name=display_name, url=stream_url, category=note if note else "مباشر", sort_order=i, is_active=True, stream_key=channel_name, video_quality=2)
+                channel = models.Channel(name=display_name, url=stream_url, category=note if note else "مباشر", sort_order=i, is_active=True, stream_key=channel_name, video_quality="854x480")
                 db.add(channel)
                 added_channels.append(display_name)
             except Exception as e:

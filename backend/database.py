@@ -109,14 +109,24 @@ def create_db_and_tables():
     except Exception:
         pass
 
-    # إضافة عمود video_quality لجدول القنوات (1=اعلى، 2=متوسطة، 3=منخفضة)
+    # عمود video_quality: أبعاد الجودة (1280x720، 854x480، 512x288) — ترحيل من 1/2/3 إن وُجد
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
             r = conn.execute(text("PRAGMA table_info(channel)"))
             cols = [row[1] for row in r.fetchall()]
             if "video_quality" not in cols:
-                conn.execute(text("ALTER TABLE channel ADD COLUMN video_quality INTEGER DEFAULT 2"))
+                conn.execute(text("ALTER TABLE channel ADD COLUMN video_quality VARCHAR DEFAULT '854x480'"))
+                conn.commit()
+            else:
+                for old, newv in (("1", "1280x720"), ("2", "854x480"), ("3", "512x288")):
+                    conn.execute(
+                        text("UPDATE channel SET video_quality = :newv WHERE CAST(video_quality AS TEXT) = :oldv"),
+                        {"newv": newv, "oldv": old},
+                    )
+                conn.execute(
+                    text("UPDATE channel SET video_quality = '854x480' WHERE video_quality IS NULL OR TRIM(COALESCE(CAST(video_quality AS TEXT), '')) = ''")
+                )
                 conn.commit()
             for col_name, col_type, col_default in [
                 ("dvr", "INTEGER", "100000"),

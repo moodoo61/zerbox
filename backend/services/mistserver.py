@@ -96,21 +96,46 @@ def call_mistserver_api(command_data: dict) -> dict:
         raise Exception(f"خطأ في سيرفر البث المحلي: {str(e)}")
 
 
-def build_source_url_with_quality(base_url: str, quality: int) -> str:
-    """إدراج الجودة في الرابط: استبدال المتغير $vi بـ video=X في الموضع الدقيق.
-    quality: 1=اعلى، 2=متوسطة، 3=منخفضة.
-    إذا لم يوجد $vi يُستخدم السلوك القديم (إلحاق ?video=X أو &video=X).
+# أبعاد الجودة المعتمدة (في الرابط: video=1280x720 إلخ)
+VIDEO_QUALITY_DIMENSIONS = ("1280x720", "854x480", "512x288")
+DEFAULT_VIDEO_QUALITY = "854x480"
+_LEGACY_QUALITY_INT = {1: "1280x720", 2: "854x480", 3: "512x288"}
+
+
+def normalize_video_quality(quality) -> str:
+    """تحويل قيمة الجودة من الواجهة أو قاعدة البيانات إلى أحد الأبعاد المعتمدة."""
+    if quality is None or quality == "":
+        return DEFAULT_VIDEO_QUALITY
+    if isinstance(quality, str):
+        s = quality.strip()
+        if s in VIDEO_QUALITY_DIMENSIONS:
+            return s
+        if s in ("1", "2", "3") and int(s) in _LEGACY_QUALITY_INT:
+            return _LEGACY_QUALITY_INT[int(s)]
+    if isinstance(quality, (int, float)) and int(quality) in _LEGACY_QUALITY_INT:
+        return _LEGACY_QUALITY_INT[int(quality)]
+    raise ValueError(
+        f"الجودة يجب أن تكون أحد: {', '.join(VIDEO_QUALITY_DIMENSIONS)} (أو للتوافق: 1 أو 2 أو 3)"
+    )
+
+
+def build_source_url_with_quality(base_url: str, quality) -> str:
+    """إدراج الجودة في الرابط: استبدال المتغير $vi بـ video=<أبعاد> في الموضع الدقيق.
+    quality: أحد VIDEO_QUALITY_DIMENSIONS، أو للتوافق 1/2/3.
+    إذا لم يوجد $vi يُستخدم السلوك القديم (إلحاق ?video=… أو &video=…).
     """
-    if not base_url or quality not in (1, 2, 3):
+    if not base_url:
         return base_url
-    # الطريقة الدقيقة: الرابط يأتي مع $vi ويُستبدل بـ video=1|2|3 في مكانه
+    try:
+        q = normalize_video_quality(quality)
+    except ValueError:
+        return base_url
     if "$vi" in base_url:
-        return base_url.replace("$vi", f"video={quality}")
-    # fallback للروابط القديمة بدون $vi
-    url = re.sub(r"[?&]video=\d+", "", base_url)
+        return base_url.replace("$vi", f"video={q}")
+    url = re.sub(r"[?&]video=[^&]*", "", base_url)
     url = url.rstrip("?&")
     sep = "&" if "?" in url else "?"
-    return f"{url}{sep}video={quality}"
+    return f"{url}{sep}video={q}"
 
 
 def create_mistserver_stream(stream_name: str, source_url: str, advanced: dict = None) -> dict:
