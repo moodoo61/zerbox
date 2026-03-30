@@ -103,6 +103,7 @@ const SystemMonitor = ({ auth, userInfo }) => {
     const [powerAction, setPowerAction] = useState(null);
 
     const isOwner = userInfo?.role === 'owner';
+    const canUsePowerControls = userInfo?.role === 'owner' || userInfo?.role === 'manager';
 
     const callPowerEndpoint = async (path, confirmMessage) => {
         if (!window.confirm(confirmMessage)) return;
@@ -511,7 +512,7 @@ const SystemMonitor = ({ auth, userInfo }) => {
                             </Box>
                         </Box>
                         <Box sx={{ width: '100%', borderBottom: '1px solid', borderColor: 'divider', opacity: 0.7 }} />
-                        {isOwner ? (
+                        {canUsePowerControls ? (
                             <Box
                                 sx={{
                                     display: 'flex',
@@ -590,7 +591,7 @@ const SystemMonitor = ({ auth, userInfo }) => {
                             </Box>
                         ) : (
                             <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-                                يتطلب صلاحية المالك لإدارة الطاقة.
+                                يتطلب صلاحية المالك أو المدير لإدارة الطاقة.
                             </Typography>
                         )}
                     </Paper>

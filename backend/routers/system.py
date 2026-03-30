@@ -19,6 +19,16 @@ def require_owner(user: AdminUser = Depends(check_auth)) -> AdminUser:
     return user
 
 
+def require_owner_or_manager(user: AdminUser = Depends(check_auth)) -> AdminUser:
+    role = getattr(user, "role", None)
+    if role not in ("owner", "manager"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="يتطلب صلاحية المالك أو المدير",
+        )
+    return user
+
+
 def _schedule_shell_command(cmd: list[str], delay_sec: float = 1.0) -> None:
     """تنفيذ أمر بعد تأخير قصير حتى تُرسل استجابة HTTP."""
 
@@ -61,21 +71,21 @@ def get_system_update_status(username: str = Depends(check_auth)):
 
 
 @router.post("/api/system/power/reboot", tags=["System Power"])
-def system_power_reboot(_user: AdminUser = Depends(require_owner)):
-    """إعادة تشغيل الجهاز (يتطلب صلاحية المالك)."""
+def system_power_reboot(_user: AdminUser = Depends(require_owner_or_manager)):
+    """إعادة تشغيل الجهاز (يتطلب صلاحية المالك أو المدير)."""
     _schedule_shell_command(["shutdown", "-r", "now"], 1.0)
     return {"status": "ok", "message": "جاري إعادة تشغيل الجهاز..."}
 
 
 @router.post("/api/system/power/shutdown", tags=["System Power"])
-def system_power_shutdown(_user: AdminUser = Depends(require_owner)):
-    """إيقاف تشغيل الجهاز (يتطلب صلاحية المالك)."""
+def system_power_shutdown(_user: AdminUser = Depends(require_owner_or_manager)):
+    """إيقاف تشغيل الجهاز (يتطلب صلاحية المالك أو المدير)."""
     _schedule_shell_command(["shutdown", "-h", "now"], 1.0)
     return {"status": "ok", "message": "جاري إيقاف تشغيل الجهاز..."}
 
 
 @router.post("/api/system/power/restart-zero-service", tags=["System Power"])
-def system_restart_zero_service(_user: AdminUser = Depends(require_owner)):
+def system_restart_zero_service(_user: AdminUser = Depends(require_owner_or_manager)):
     """إعادة تشغيل خدمة Zero فقط دون إعادة تشغيل النظام."""
     _schedule_shell_command(["systemctl", "restart", "zero"], 1.0)
     return {"status": "ok", "message": "جاري إعادة تشغيل خدمة Zero..."}

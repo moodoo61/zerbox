@@ -87,6 +87,23 @@ def _clear_systemd_runtime_fields(service: models.DefaultService) -> None:
         service.process_id = None
 
 
+def apply_systemd_state_from_db(db: Session) -> None:
+    """بعد الإقلاع: إن كانت الخدمة مفعّلة في DB فعّل الوحدة للإقلاع وشغّلها (يتطابق مع توقع المستخدم)."""
+    try:
+        for row in db.exec(select(models.DefaultService)).all():
+            unit = _systemd_unit(row)
+            if not unit or not row.is_active:
+                continue
+            subprocess.run(
+                ["systemctl", "enable", "--now", unit],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
+    except Exception as e:
+        print(f"⚠️ apply_systemd_state_from_db: {e}")
+
+
 def _service_url(
     service: models.DefaultService,
     server_ip: str,
@@ -277,7 +294,13 @@ def start_default_service(db: Session, service_id: int, base_url: Optional[str] 
             return {"status": "success", "message": f"تم تشغيل {service.name} بنجاح", "url": viewer_url, "process_id": None}
         elif service.start_command.startswith("systemctl"):
             service_name = service.start_command.split()[-1]
-            result = subprocess.run(service.start_command.split(), capture_output=True, text=True, timeout=60)
+            # enable + start: يبقى التشغيل بعد إعادة التشغيل (لا يكفي systemctl start وحده)
+            result = subprocess.run(
+                ["systemctl", "enable", "--now", service_name],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
             if result.returncode == 0:
                 _clear_systemd_runtime_fields(service)
                 db.add(service)
@@ -309,10 +332,10 @@ def stop_default_service(db: Session, service_id: int) -> dict:
     service = db.get(models.DefaultService, service_id)
     if not service:
         return {"status": "error", "message": "الخدمة غير موجودة"}
-    if not _runtime_is_running(service, db):
-        return {"status": "warning", "message": "الخدمة متوقفة بالفعل"}
     try:
         if service.name == "البث المباشر" or service.start_command == "viewer_page_toggle":
+            if not _runtime_is_running(service, db):
+                return {"status": "warning", "message": "الخدمة متوقفة بالفعل"}
             viewer_settings = get_or_create_viewer_page_settings(db)
             viewer_settings.is_enabled = False
             db.add(viewer_settings)
@@ -325,7 +348,14 @@ def stop_default_service(db: Session, service_id: int) -> dict:
             return {"status": "success", "message": f"تم إيقاف {service.name} بنجاح"}
         elif service.start_command.startswith("systemctl"):
             service_name = service.start_command.split()[-1]
-            result = subprocess.run(f"systemctl stop {service_name}".split(), capture_output=True, text=True, timeout=60)
+            # إيقاف وإلغاء التشغيل التلقائي عند الإقلاع (يتوافق مع تعطيل الخدمة من اللوحة)
+            # لا نعتمد على is_running: قد تكون متوقفة لكن ما زالت مفعّلة للإقلاع
+            result = subprocess.run(
+                ["systemctl", "disable", "--now", service_name],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
             if result.returncode == 0:
                 _clear_systemd_runtime_fields(service)
                 db.add(service)
@@ -334,6 +364,8 @@ def stop_default_service(db: Session, service_id: int) -> dict:
                 return {"status": "success", "message": f"تم إيقاف {service.name} بنجاح"}
             return {"status": "error", "message": f"فشل إيقاف الخدمة: {result.stderr}"}
         else:
+            if not _runtime_is_running(service, db):
+                return {"status": "warning", "message": "الخدمة متوقفة بالفعل"}
             import psutil as _psutil
             if service.process_id:
                 try:
@@ -380,9 +412,17 @@ def toggle_default_service(db: Session, service_id: int) -> dict:
         if service.is_active and not was_active:
             start_result = start_default_service(db, service_id)
             message = f"تم تفعيل وتشغيل {service.name} بنجاح" if start_result["status"] == "success" else f"تم تفعيل {service.name} لكن فشل في التشغيل: {start_result.get('message', '')}"
-        elif not service.is_active and _runtime_is_running(service, db):
-            stop_default_service(db, service_id)
-            message = f"تم تعطيل وإيقاف {service.name} بنجاح"
+        elif not service.is_active and was_active:
+            unit = _systemd_unit(service)
+            if unit:
+                stop_default_service(db, service_id)
+                message = f"تم تعطيل وإيقاف {service.name} بنجاح"
+            elif _runtime_is_running(service, db):
+                stop_default_service(db, service_id)
+                message = f"تم تعطيل وإيقاف {service.name} بنجاح"
+            else:
+                status_text = "معطلة"
+                message = f"تم تغيير حالة {service.name} إلى {status_text}"
         else:
             status_text = "مفعلة" if service.is_active else "معطلة"
             message = f"تم تغيير حالة {service.name} إلى {status_text}"

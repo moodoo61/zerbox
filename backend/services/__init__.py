@@ -95,6 +95,7 @@ from .updater import (
 from .default_services import (
     get_server_ip,
     initialize_default_services,
+    apply_systemd_state_from_db,
     get_default_services,
     get_default_service,
     update_default_service,

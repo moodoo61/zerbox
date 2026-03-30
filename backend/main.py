@@ -156,6 +156,7 @@ async def lifespan(app: FastAPI):
     # Initialize default services
     with next(get_session()) as db:
         services.initialize_default_services(db)
+        services.apply_systemd_state_from_db(db)
     log_event("تم تهيئة الخدمات الافتراضية", "info", "startup")
 
     # إعادة تشغيل MistServer قبل جلب المفتاح لتفادي خطأ resolve localhost عند الإقلاع
