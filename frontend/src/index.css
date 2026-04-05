@@ -36,6 +36,18 @@ html, body, #root {
   direction: rtl;
 }
 
+/* لوحة التحكم — تخفيض padding على الشاشات الصغيرة فقط (أقل من عرض MUI md = 900px).
+   ملاحظة: أسماء .css-* مولَّدة من MUI/Emotion وقد تتغيّر عند إعادة بناء الواجهة؛
+   التعديلات في AdminLayout وصفحات الإدارة (sx) تحافظ على نفس القيم بشكل مستقر. */
+@media (max-width: 899px) {
+  .css-19kh7x9 {
+    padding: 10px !important;
+  }
+  .css-19kzrtu {
+    padding: 15px !important;
+  }
+}
+
 /* تحسين شكل الـ scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

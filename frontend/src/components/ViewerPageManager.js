@@ -176,7 +176,7 @@ const ViewerPageManager = ({ auth }) => {
 
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: { xs: '15px', md: 3 } }}>
                 <CircularProgress />
             </Box>
         );

@@ -139,7 +139,7 @@ const ServiceStatsManager = ({ auth }) => {
     return (
         <Box sx={{ direction: 'rtl' }}>
             {/* Header */}
-            <Paper sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'white', borderRadius: 3 }}>
+            <Paper sx={{ p: { xs: '15px', md: 3 }, mb: 3, bgcolor: 'primary.main', color: 'white', borderRadius: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <BarChartIcon sx={{ fontSize: 36 }} />

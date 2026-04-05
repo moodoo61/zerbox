@@ -24,15 +24,39 @@ fi
 cd "$QAF_DIR"
 
 export PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+# pnpm (تثبيت مستقل أو npm prefix)
+for _p in "$HOME/.local/share/pnpm" "/usr/local/share/npm-global/bin"; do
+  [ -d "$_p" ] && PATH="$_p:$PATH"
+done
 if [ -d "$HOME/.nvm/versions/node" ]; then
   for d in "$HOME/.nvm/versions/node"/*/bin; do
     [ -d "$d" ] && PATH="$d:$PATH"
   done
 fi
 
-if ! command -v pnpm >/dev/null 2>&1; then
-  echo "qafiyah-systemd-start: pnpm غير موجود في PATH." >&2
+WEB_DIR="$QAF_DIR/apps/web"
+if [ ! -f "$WEB_DIR/package.json" ]; then
+  echo "qafiyah-systemd-start: مفقود $WEB_DIR/package.json — المشروع ليس monorepo كاملاً أو المسار خاطئ." >&2
   exit 1
 fi
 
-exec pnpm --filter @qaf/web dev -- -p 8082 -H 0.0.0.0
+# مع pnpm غالباً لا يوجد next في جذر qafiyah/node_modules/.bin؛ يبقى داخل apps/web أو عبر pnpm store.
+# لا نستخدم \"pnpm run dev\" (يمرّ -- -p إلى next بشكل خاطئ مع Next 16).
+
+if command -v pnpm >/dev/null 2>&1; then
+  exec pnpm --dir apps/web exec next dev -p 8082 -H 0.0.0.0
+fi
+
+WEB_NEXT="$WEB_DIR/node_modules/.bin/next"
+if [ -x "$WEB_NEXT" ]; then
+  cd "$WEB_DIR"
+  exec ./node_modules/.bin/next dev -p 8082 -H 0.0.0.0
+fi
+
+ROOT_NEXT="$QAF_DIR/node_modules/.bin/next"
+if [ -x "$ROOT_NEXT" ]; then
+  exec "$ROOT_NEXT" dev ./apps/web -p 8082 -H 0.0.0.0
+fi
+
+echo "qafiyah-systemd-start: لم يُعثر على next (pnpm أو apps/web/node_modules). من $QAF_DIR نفّذ: pnpm install" >&2
+exit 1

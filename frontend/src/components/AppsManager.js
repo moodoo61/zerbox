@@ -165,7 +165,7 @@ const AppsManager = ({ auth }) => {
                     <Box sx={{
                         display: 'grid',
                         gridTemplateColumns: { xs: 'repeat(4, 1fr)', sm: 'repeat(8, 1fr)' },
-                        gap: 2, p: 3,
+                        gap: 2, p: { xs: '15px', md: 3 },
                         bgcolor: '#0f172a', borderRadius: '16px',
                         opacity: allHidden ? 0.35 : 1,
                         transition: 'opacity 0.4s',

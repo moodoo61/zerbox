@@ -407,11 +407,7 @@ const ServiceManager = ({ auth, userInfo }) => {
     };
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Typography variant="h4" component="h2" gutterBottom>
-                إدارة الخدمات
-            </Typography>
-
+        <>
             <Paper sx={{ width: '100%' }}>
                 {(() => {
                     const perms = getUserPermissions(userInfo);
@@ -432,7 +428,7 @@ const ServiceManager = ({ auth, userInfo }) => {
                 </Tabs>
 
                 {activeTabId === 'default' && (
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: '15px', md: 3 } }}>
                         {defaultServiceError && <Alert severity="error" sx={{ mb: 2 }}>{defaultServiceError}</Alert>}
                         {defaultServiceSuccess && <Alert severity="success" sx={{ mb: 2 }}>{defaultServiceSuccess}</Alert>}
                         
@@ -684,13 +680,13 @@ const ServiceManager = ({ auth, userInfo }) => {
                 )}
 
                 {activeTabId === 'stats' && (
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: '15px', md: 3 } }}>
                         <ServiceStatsManager auth={auth} />
                     </Box>
                 )}
 
                 {activeTabId === 'custom' && (
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: '15px', md: 3 } }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6">
                                 الخدمات المخصصة
@@ -838,7 +834,7 @@ const ServiceManager = ({ auth, userInfo }) => {
                     </Box>
                 </Box>
             </Modal>
-        </Box>
+        </>
     );
 };
 

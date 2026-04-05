@@ -396,7 +396,7 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
 
             {/* تاب عامة */}
             {settingsTab === 0 && (
-                <Box sx={{ p: 3 }}>
+                <Box sx={{ p: { xs: '15px', md: 3 } }}>
                     <Typography variant="h6" gutterBottom>ضبط الوجهة الرئيسية :</Typography>
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                     {success && <Alert severity="success" sx={{ mb: 2 }}>تم حفظ الإعدادات بنجاح.</Alert>}
@@ -477,12 +477,12 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
 
             {/* تاب الشبكة */}
             {settingsTab === 1 && (
-                <Box sx={{ p: 3 }}><NetworkTab auth={auth} /></Box>
+                <Box sx={{ p: { xs: '15px', md: 3 } }}><NetworkTab auth={auth} /></Box>
             )}
 
             {/* تاب إدارة الصلاحيات */}
             {settingsTab === 2 && (
-                <Box sx={{ p: 3 }}>
+                <Box sx={{ p: { xs: '15px', md: 3 } }}>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SecurityIcon color="primary" /> إدارة الصلاحيات
                     </Typography>

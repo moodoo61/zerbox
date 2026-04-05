@@ -121,10 +121,10 @@ auto_activation_result: dict = {"status": None, "message": None}
 def _build_advanced_cfg(channel: models.Channel) -> dict:
     """بناء dict الإعدادات المتقدمة لـ MistServer من كائن القناة."""
     return {
-        "DVR": getattr(channel, "dvr", 200000) or 200000,
-        "pagetimeout": getattr(channel, "pagetimeout", 90) or 90,
-        "maxkeepaway": getattr(channel, "maxkeepaway", 90000) or 90000,
-        "inputtimeout": getattr(channel, "inputtimeout", 180) or 180,
+        "DVR": getattr(channel, "dvr", 100000) or 100000,
+        "pagetimeout": getattr(channel, "pagetimeout", 80) or 80,
+        "maxkeepaway": getattr(channel, "maxkeepaway", 50000) or 50000,
+        "inputtimeout": getattr(channel, "inputtimeout", 120) or 120,
         "always_on": bool(getattr(channel, "always_on", False)),
         "raw": bool(getattr(channel, "raw", False)),
     }
@@ -532,10 +532,10 @@ def apply_defaults_advanced(
         if not channels:
             return {"status": "error", "message": "لا توجد قنوات"}
         for ch in channels:
-            ch.dvr = 200000
-            ch.pagetimeout = 90
-            ch.maxkeepaway = 90000
-            ch.inputtimeout = 180
+            ch.dvr = 100000
+            ch.pagetimeout = 80
+            ch.maxkeepaway = 50000
+            ch.inputtimeout = 120
             ch.always_on = False
             ch.raw = False
             stream_key = ch.stream_key or ch.name

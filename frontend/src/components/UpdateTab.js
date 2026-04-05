@@ -120,7 +120,7 @@ const UpdateTab = ({ auth }) => {
     const isUpdateInProgress = updating || (updateStatus && updateStatus.status === 'updating');
 
     return (
-        <Box sx={{ p: 3, maxWidth: 700 }}>
+        <Box sx={{ p: { xs: '15px', md: 3 }, maxWidth: 700 }}>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <UpdateIcon color="primary" /> تحديث النظام
             </Typography>
@@ -234,7 +234,7 @@ const UpdateTab = ({ auth }) => {
 
             {/* شريط تقدم التحديث */}
             {isUpdateInProgress && updateStatus && (
-                <Paper variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2, border: '2px solid', borderColor: 'primary.main' }}>
+                <Paper variant="outlined" sx={{ p: { xs: '15px', md: 3 }, mb: 3, borderRadius: 2, border: '2px solid', borderColor: 'primary.main' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <CircularProgress size={20} />
                         <Typography variant="subtitle1" fontWeight={700}>

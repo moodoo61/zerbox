@@ -6,11 +6,13 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, Switch, FormControlLabel, IconButton,
     Radio, RadioGroup,
+    useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
     Save as SaveIcon,
-    LiveTv as LiveTvIcon,
     Refresh as RefreshIcon,
+    FactCheck as FactCheckIcon,
     Delete as DeleteIcon,
     Restore as RestoreIcon,
     PersonOff as PersonOffIcon,
@@ -52,6 +54,8 @@ function normalizeVideoQualityFromApi(q) {
 }
 
 const StreamingManager = ({ auth, userInfo }) => {
+    const theme = useTheme();
+    const showToolbarButtonIcons = useMediaQuery(theme.breakpoints.up('sm'));
     const [streamingTab, setStreamingTab] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -75,8 +79,8 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [advancedLoading, setAdvancedLoading] = useState(false);
     const [advancedSaving, setAdvancedSaving] = useState(false);
     const [advancedSettings, setAdvancedSettings] = useState({
-        dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
-        inputtimeout: 180, always_on: false, raw: false,
+        dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
+        inputtimeout: 120, always_on: false, raw: false,
     });
 
     const TOAST_AUTO_HIDE_MS = 6000;
@@ -581,13 +585,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                 setAdvancedSettings(data.settings);
             } else {
                 setAdvancedSettings({
-                    dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
+                    dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
                     inputtimeout: 180, always_on: false, raw: false,
                 });
             }
         } catch {
             setAdvancedSettings({
-                dvr: 200000, pagetimeout: 90, maxkeepaway: 90000,
+                dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
                 inputtimeout: 180, always_on: false, raw: false,
             });
         } finally {
@@ -668,14 +672,7 @@ const StreamingManager = ({ auth, userInfo }) => {
     };
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <LiveTvIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h4" component="h2">
-                    إدارة البث المباشر
-                </Typography>
-            </Box>
-
+        <>
             <Paper sx={{ width: '100%' }}>
                 {(() => {
                     const perms = _getPerms(userInfo);
@@ -695,7 +692,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                 </Tabs>
 
                 {activeTabId === 'channels' && (
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: '15px', md: 3 } }}>
             {(error || successMessage) && (
                 <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {error && (
@@ -743,7 +740,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     color={isActivated ? 'success' : 'primary'}
                                     onClick={handleSubscriptionSubmit}
                                     disabled={loading}
-                                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                                    startIcon={
+                                        loading
+                                            ? <CircularProgress size={16} color="inherit" />
+                                            : showToolbarButtonIcons
+                                              ? <SaveIcon />
+                                              : undefined
+                                    }
                                     sx={{
                                         gap: 1.5,
                                         '& .MuiButton-startIcon': { margin: '0 !important' },
@@ -763,7 +766,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     size="small"
                                     onClick={testMistServerConnection}
                                     disabled={testingConnection}
-                                    startIcon={testingConnection ? <CircularProgress size={16} /> : <RefreshIcon />}
+                                    startIcon={
+                                        testingConnection
+                                            ? <CircularProgress size={16} color="inherit" />
+                                            : showToolbarButtonIcons
+                                              ? <FactCheckIcon />
+                                              : undefined
+                                    }
                                     sx={{
                                         gap: 1.5,
                                         '& .MuiButton-startIcon': { margin: '0 !important' },
@@ -783,7 +792,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     size="small"
                                     onClick={refreshChannels}
                                     disabled={loading}
-                                    startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
+                                    startIcon={
+                                        loading
+                                            ? <CircularProgress size={16} color="inherit" />
+                                            : showToolbarButtonIcons
+                                              ? <RefreshIcon />
+                                              : undefined
+                                    }
                                     sx={{
                                         gap: 1.5,
                                         '& .MuiButton-startIcon': { margin: '0 !important' },
@@ -803,7 +818,13 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     size="small"
                                     onClick={fetchAllChannelsStats}
                                     disabled={loadingStats}
-                                    startIcon={loadingStats ? <CircularProgress size={16} /> : <BarChartIcon />}
+                                    startIcon={
+                                        loadingStats
+                                            ? <CircularProgress size={16} color="inherit" />
+                                            : showToolbarButtonIcons
+                                              ? <BarChartIcon />
+                                              : undefined
+                                    }
                                     sx={{
                                         gap: 1.5,
                                         '& .MuiButton-startIcon': { margin: '0 !important' },
@@ -823,7 +844,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     size="small"
                                     onClick={openBulkQualityDialog}
                                     disabled={loading || channels.length === 0}
-                                    startIcon={<TuneIcon />}
+                                    startIcon={showToolbarButtonIcons ? <TuneIcon /> : undefined}
                                     sx={{
                                         gap: 1.5,
                                         '& .MuiButton-startIcon': { margin: '0 !important' },
@@ -845,11 +866,11 @@ const StreamingManager = ({ auth, userInfo }) => {
 
                         {isActivated && mistServerAvailable ? (
                         loadingChannels ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: { xs: '15px', md: 3 } }}>
                                 <CircularProgress />
                             </Box>
                         ) : channels.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', p: { xs: '15px', md: 3 } }}>
                                 لا توجد قنوات متاحة حالياً
                             </Typography>
                         ) : (
@@ -1163,7 +1184,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                 )}
 
                 {activeTabId === 'viewer' && (
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: { xs: '15px', md: 3 } }}>
                         <ViewerPageManager auth={auth} />
                     </Box>
                 )}
@@ -1238,7 +1259,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                 </DialogTitle>
                 <DialogContent dividers sx={{ py: 1.5 }}>
                     {advancedLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: { xs: '15px', md: 3 } }}><CircularProgress /></Box>
                     ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                             <Box sx={{ display: 'flex', gap: 2 }}>
@@ -1279,7 +1300,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </>
     );
 };
 

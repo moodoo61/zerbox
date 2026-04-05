@@ -241,7 +241,9 @@ const AdminLayout = ({ setAuth, userInfo }) => {
             <Box
                 component="main"
                 sx={{
-                    flexGrow: 1, p: 2.5, direction: 'rtl',
+                    flexGrow: 1,
+                    p: { xs: '10px', md: 2.5 },
+                    direction: 'rtl',
                     marginLeft: { xs: 0, md: `${drawerWidth}px` },
                     minHeight: '100vh'
                 }}

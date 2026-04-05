@@ -15,10 +15,10 @@ from .mistserver import (
 )
 
 _DEFAULT_ADVANCED = {
-    "DVR": 200000,
-    "pagetimeout": 90,
-    "maxkeepaway": 90000,
-    "inputtimeout": 180,
+    "DVR": 100000,
+    "pagetimeout": 80,
+    "maxkeepaway": 50000,
+    "inputtimeout": 120,
 }
 
 
