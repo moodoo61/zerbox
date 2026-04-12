@@ -12,14 +12,52 @@ from .mistserver import (
     create_mistserver_stream,
     get_mistserver_streams,
     delete_all_mistserver_streams,
+    normalize_video_quality,
+    DEFAULT_VIDEO_QUALITY,
 )
 
 _DEFAULT_ADVANCED = {
-    "DVR": 100000,
-    "pagetimeout": 80,
-    "maxkeepaway": 50000,
+    "DVR": 200000,
+    "pagetimeout": 180,
+    "maxkeepaway": 195000,
     "inputtimeout": 120,
+    "segmentsize": 6000,
 }
+_VERIFY_RETRY_DELAY_SECONDS = 60
+_VERIFY_MAX_ATTEMPTS = 2
+
+
+class ExternalServerConnectionError(Exception):
+    """فشل اتصال مؤقت بخادم الاشتراك الخارجي."""
+    pass
+
+
+def _is_temporary_external_failure(error: Exception) -> bool:
+    msg = str(error).lower()
+    indicators = (
+        "temporary failure in name resolution",
+        "name resolution",
+        "failed to establish a new connection",
+        "max retries exceeded",
+        "connection error",
+        "newconnectionerror",
+        "timed out",
+        "timeout",
+    )
+    return any(i in msg for i in indicators) or isinstance(error, ExternalServerConnectionError)
+
+
+def _public_activation_error_message(error: Exception) -> str:
+    if isinstance(error, ExternalServerConnectionError) or _is_temporary_external_failure(error):
+        return "تعذر الاتصال بخادم الاشتراك حالياً. يرجى التحقق من اتصال الإنترنت والمحاولة لاحقاً."
+    msg = str(error)
+    if "المفتاح غير صالح" in msg or "منتهي الصلاحية" in msg:
+        return "المفتاح غير صالح أو منتهي الصلاحية."
+    if "لم يتم العثور على ملف المفتاح" in msg:
+        return "لم يتم العثور على ملف المفتاح."
+    if "سيرفر المشاهدة" in msg:
+        return "سيرفر المشاهدة غير متاح حالياً."
+    return "تعذر تفعيل خدمة البث حالياً."
 
 
 def get_or_create_streaming_subscription(db: Session) -> models.StreamingSubscription:
@@ -161,9 +199,9 @@ def verify_key_and_fetch_channels(key: str) -> Dict[str, Any]:
             return {"status": "success", "channels": formatted_channels, "message": f"تم التحقق من المفتاح وجلب {total_channels} قناة بنجاح"}
         return {"status": "error", "channels": {}, "message": "لا توجد قنوات نشطة متاحة"}
     except requests.exceptions.RequestException as e:
-        raise Exception(f"فشل الاتصال بالخادم الخارجي: {str(e)}")
+        raise ExternalServerConnectionError(str(e))
     except Exception as e:
-        raise Exception(f"خطأ في التحقق من المفتاح: {str(e)}")
+        raise Exception(str(e))
 
 
 def activate_streaming_service(db: Session, subscription_data=None) -> models.StreamingSubscription:
@@ -176,13 +214,48 @@ def activate_streaming_service(db: Session, subscription_data=None) -> models.St
         key = read_local_key()
         if not key:
             raise Exception("لم يتم العثور على ملف المفتاح (key.json أو kay.json)")
-        verification_result = verify_key_and_fetch_channels(key)
+        verification_result = None
+        last_verify_error = None
+        for attempt in range(1, _VERIFY_MAX_ATTEMPTS + 1):
+            try:
+                verification_result = verify_key_and_fetch_channels(key)
+                last_verify_error = None
+                break
+            except Exception as e:
+                last_verify_error = e
+                should_retry = attempt < _VERIFY_MAX_ATTEMPTS and _is_temporary_external_failure(e)
+                if should_retry:
+                    print(f"⚠️ فشل الاتصال بخادم الاشتراك (محاولة {attempt}/{_VERIFY_MAX_ATTEMPTS}) — إعادة المحاولة بعد {_VERIFY_RETRY_DELAY_SECONDS} ثانية")
+                    time.sleep(_VERIFY_RETRY_DELAY_SECONDS)
+                    continue
+                break
+        if last_verify_error is not None:
+            raise last_verify_error
         if verification_result["status"] != "success":
             raise Exception(verification_result.get("message", "فشل التحقق من المفتاح"))
         channels_data = verification_result["channels"]
+        existing_channels = db.exec(select(models.Channel)).all()
+        previous_channels_by_key = {}
+        for ch in existing_channels:
+            key_name = ch.stream_key or ch.name
+            try:
+                previous_quality = normalize_video_quality(getattr(ch, "video_quality", None))
+            except ValueError:
+                previous_quality = DEFAULT_VIDEO_QUALITY
+            previous_channels_by_key[key_name] = {
+                "video_quality": previous_quality,
+                "advanced": {
+                    "DVR": int(getattr(ch, "dvr", 200000) or 200000),
+                    "pagetimeout": int(getattr(ch, "pagetimeout", 180) or 180),
+                    "maxkeepaway": int(getattr(ch, "maxkeepaway", 195000) or 195000),
+                    "inputtimeout": int(getattr(ch, "inputtimeout", 120) or 120),
+                    "segmentsize": int(getattr(ch, "segmentsize", 6000) or 6000),
+                    "always_on": bool(getattr(ch, "always_on", False)),
+                },
+            }
         delete_result = delete_all_mistserver_streams()
         print(f"حذف القنوات القديمة: {delete_result}")
-        for existing_channel in db.exec(select(models.Channel)).all():
+        for existing_channel in existing_channels:
             db.delete(existing_channel)
         db.commit()
 
@@ -202,13 +275,30 @@ def activate_streaming_service(db: Session, subscription_data=None) -> models.St
                     display_name = channel_name
                 if not stream_url:
                     continue
-                source_url = build_source_url_with_quality(stream_url, "854x480")
+                previous_cfg = previous_channels_by_key.get(channel_name, {})
+                quality = previous_cfg.get("video_quality", DEFAULT_VIDEO_QUALITY)
+                advanced = previous_cfg.get("advanced", _DEFAULT_ADVANCED)
+                source_url = build_source_url_with_quality(stream_url, quality)
                 try:
-                    create_mistserver_stream(channel_name, source_url, _DEFAULT_ADVANCED)
+                    create_mistserver_stream(channel_name, source_url, advanced)
                     mistserver_success.append(channel_name)
                 except Exception as e:
                     failed_channels.append(f"{channel_name}: {e}")
-                channel = models.Channel(name=display_name, url=stream_url, category=note if note else "مباشر", sort_order=i, is_active=True, stream_key=channel_name, video_quality="854x480")
+                channel = models.Channel(
+                    name=display_name,
+                    url=stream_url,
+                    category=note if note else "مباشر",
+                    sort_order=i,
+                    is_active=True,
+                    stream_key=channel_name,
+                    video_quality=quality,
+                    dvr=int(advanced.get("DVR", 200000)),
+                    pagetimeout=int(advanced.get("pagetimeout", 180)),
+                    maxkeepaway=int(advanced.get("maxkeepaway", 195000)),
+                    inputtimeout=int(advanced.get("inputtimeout", 120)),
+                    segmentsize=int(advanced.get("segmentsize", 6000)),
+                    always_on=bool(advanced.get("always_on", False)),
+                )
                 db.add(channel)
                 added_channels.append(display_name)
             except Exception as e:
@@ -225,15 +315,24 @@ def activate_streaming_service(db: Session, subscription_data=None) -> models.St
         print(f"تم تفعيل الخدمة بنجاح. تمت إضافة {len(added_channels)} قناة")
         return subscription
     except Exception as e:
-        error_message = str(e)
-        subscription.subscription_data = f"Error: {error_message}"
+        # عند فشل التفعيل لا نُبقي قنوات ظاهرة في الإدارة/المشاهدة
+        try:
+            delete_all_mistserver_streams()
+        except Exception:
+            pass
+        for existing_channel in db.exec(select(models.Channel)).all():
+            db.delete(existing_channel)
+        db.commit()
+
+        public_error = _public_activation_error_message(e)
+        subscription.subscription_data = f"Error: {public_error}"
         subscription.is_active = False
         subscription.activation_date = time.strftime("%Y-%m-%d %H:%M:%S")
         subscription.external_server_url = "فشل التفعيل"
         db.add(subscription)
         db.commit()
         db.refresh(subscription)
-        raise Exception(f"فشل في تفعيل خدمة البث: {error_message}")
+        raise Exception(public_error)
 
 
 def get_streaming_channels(db: Session, skip: int = 0, limit: int = 100) -> List[models.Channel]:

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, useTheme, Button, Chip } from '@mui/material';
+import { Box, Typography, Paper, useTheme, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import SystemMonitor from './SystemMonitor';
 import DashboardIcon from '@mui/icons-material/Dashboard';

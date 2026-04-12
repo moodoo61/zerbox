@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlmodel import Session, select
 from backend import models, services
 from backend.database import create_db_and_tables, get_session, get_or_create_settings, get_or_create_admin_user, get_user_by_username, _build_full_permissions
@@ -441,6 +441,25 @@ def handle_service_click(service_id: int, db: Session = Depends(get_session)):
     return db_service
 
 
+@app.get("/api/services/{service_id}/open", tags=["Services"])
+def open_service_via_tracked_link(service_id: int, db: Session = Depends(get_session)):
+    """فتح رابط الخدمة مع تسجيل الزيارة في الإحصائيات."""
+    db_service = services.get_service(db=db, service_id=service_id)
+    if db_service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if not db_service.link:
+        raise HTTPException(status_code=400, detail="رابط الخدمة غير متوفر")
+    try:
+        services.increment_click_count(db=db, service_id=service_id)
+    except Exception as e:
+        print(f"خطأ في زيادة عداد النقرات: {e}")
+    try:
+        _track_service_visit(db, service_id, db_service.name, "custom")
+    except Exception as e:
+        print(f"خطأ في تسجيل الزيارة: {e}")
+    return RedirectResponse(url=db_service.link, status_code=302)
+
+
 @app.post("/api/default-services/{service_id}/visit", tags=["Services"])
 def handle_default_service_visit(service_id: int, db: Session = Depends(get_session)):
     """تسجيل زيارة لخدمة افتراضية"""
@@ -453,6 +472,33 @@ def handle_default_service_visit(service_id: int, db: Session = Depends(get_sess
     except Exception as e:
         print(f"خطأ في تسجيل الزيارة: {e}")
     return {"status": "ok"}
+
+
+@app.get("/api/default-services/{service_id}/open", tags=["Services"])
+def open_default_service_via_tracked_link(
+    service_id: int,
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    """فتح رابط الخدمة الافتراضية مع تسجيل الزيارة في الإحصائيات."""
+    svc = db.get(models.DefaultService, service_id)
+    if not svc:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if not svc.is_active:
+        raise HTTPException(status_code=403, detail="الخدمة غير مفعلة")
+
+    base_url = str(request.base_url).rstrip("/")
+    svc_data = services.get_default_service(db, service_id, base_url=base_url)
+    target_url = (svc_data or {}).get("url")
+    if not target_url:
+        raise HTTPException(status_code=503, detail="الخدمة غير متاحة حالياً")
+
+    try:
+        _track_service_visit(db, service_id, svc.name, "default")
+    except Exception as e:
+        print(f"خطأ في تسجيل الزيارة: {e}")
+
+    return RedirectResponse(url=target_url, status_code=302)
 
 
 def _track_service_visit(db: Session, service_id: int, service_name: str, service_type: str):

@@ -58,19 +58,8 @@ export default function HomePage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Utility functions - تتبع زيارات الخدمات (مخصصة وافتراضية)
-    const handleServiceClick = (serviceId) => {
-        // الخدمات الافتراضية لها ID يبدأ بـ 999
-        const isDefaultService = String(serviceId).startsWith('999');
-        if (isDefaultService) {
-            const realId = String(serviceId).slice(3); // إزالة 999 للحصول على الـ ID الحقيقي
-            fetch(`/api/default-services/${realId}/visit`, { method: 'POST' })
-                .catch(error => console.error('Error tracking default service visit:', error));
-        } else {
-            fetch(`/api/services/${serviceId}/click`, { method: 'POST' })
-                .catch(error => console.error('Error incrementing click count:', error));
-        }
-    };
+    // التتبع أصبح عبر رابط الفتح المباشر /open في الباكند
+    const handleServiceClick = () => {};
 
     const scrollToApps = () => {
         const appsSection = document.getElementById('applications-section');

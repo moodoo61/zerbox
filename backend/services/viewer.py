@@ -1,7 +1,7 @@
 """إعدادات صفحة المشاهدة (Viewer Page)."""
 from sqlmodel import Session, select
 from .. import models
-from .streaming import get_streaming_channels
+from .streaming import get_streaming_channels, get_or_create_streaming_subscription
 
 
 def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings:
@@ -65,6 +65,9 @@ def get_viewer_page_data(db: Session) -> dict:
     settings = get_or_create_viewer_page_settings(db)
     if not settings.is_enabled:
         return {"status": "disabled", "message": "صفحة المشاهدة غير مفعلة"}
+    subscription = get_or_create_streaming_subscription(db)
+    if not subscription.is_active:
+        return {"status": "disabled", "message": "خدمة البث غير مفعلة"}
     channels = get_streaming_channels(db)
     if settings.default_channel:
         sorted_channels = []

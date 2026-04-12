@@ -129,12 +129,12 @@ def create_db_and_tables():
                 )
                 conn.commit()
             for col_name, col_type, col_default in [
-                ("dvr", "INTEGER", "100000"),
-                ("pagetimeout", "INTEGER", "60"),
-                ("maxkeepaway", "INTEGER", "60000"),
+                ("dvr", "INTEGER", "200000"),
+                ("pagetimeout", "INTEGER", "180"),
+                ("maxkeepaway", "INTEGER", "195000"),
                 ("inputtimeout", "INTEGER", "120"),
+                ("segmentsize", "INTEGER", "6000"),
                 ("always_on", "BOOLEAN", "0"),
-                ("raw", "BOOLEAN", "0"),
             ]:
                 if col_name not in cols:
                     conn.execute(text(f"ALTER TABLE channel ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"))

@@ -6,8 +6,13 @@ import { shadows, transitions } from '../../styles/animations';
 
 const ServiceCard = ({ service, onServiceClick, index }) => {
     const handleCardClick = () => {
-        window.open(service.link, '_blank', 'noopener,noreferrer');
-        onServiceClick(service.id);
+        const sid = String(service.id);
+        const isDefaultService = sid.startsWith('999');
+        const trackedUrl = isDefaultService
+            ? `/api/default-services/${sid.slice(3)}/open`
+            : `/api/services/${sid}/open`;
+        window.open(trackedUrl, '_blank', 'noopener,noreferrer');
+        if (typeof onServiceClick === 'function') onServiceClick(service.id);
     };
 
     const cardStyles = {

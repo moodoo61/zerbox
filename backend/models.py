@@ -138,12 +138,12 @@ class ChannelBase(SQLModel):
     sort_order: int = 0
     stream_key: Optional[str] = None  # اسم القناة في MistServer (ch11, ch12, etc.)
     video_quality: str = "854x480"  # 1280x720 | 854x480 | 512x288 → video=<أبعاد> في رابط المصدر
-    dvr: int = 100000  # Buffer time (ms)
-    pagetimeout: int = 80  # Memory page timeout
-    maxkeepaway: int = 50000  # Maximum live keep-away distance
+    dvr: int = 200000  # Buffer time (ms)
+    pagetimeout: int = 180  # Memory page timeout
+    maxkeepaway: int = 195000  # Maximum live keep-away distance
     inputtimeout: int = 120  # Input inactivity timeout
+    segmentsize: int = 6000  # حجم المقطع (ms)
     always_on: bool = False  # تشغيل دائم
-    raw: bool = False  # تمرير مباشر
 
 
 class Channel(ChannelBase, table=True):
@@ -171,8 +171,8 @@ class ChannelUpdate(SQLModel):
     pagetimeout: Optional[int] = None
     maxkeepaway: Optional[int] = None
     inputtimeout: Optional[int] = None
+    segmentsize: Optional[int] = None
     always_on: Optional[bool] = None
-    raw: Optional[bool] = None
 
 
 # ---- Viewer Page Settings Models ----

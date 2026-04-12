@@ -714,7 +714,7 @@ const ServiceManager = ({ auth, userInfo }) => {
                                             <TableCell component="th" scope="row">{service.name}</TableCell>
                                             <TableCell>{service.description}</TableCell>
                                             <TableCell>
-                                                <Link href={service.link} target="_blank" rel="noopener noreferrer">
+                                                <Link href={`/api/services/${service.id}/open`} target="_blank" rel="noopener noreferrer">
                                                     {service.link}
                                                 </Link>
                                             </TableCell>

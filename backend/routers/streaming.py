@@ -121,12 +121,12 @@ auto_activation_result: dict = {"status": None, "message": None}
 def _build_advanced_cfg(channel: models.Channel) -> dict:
     """بناء dict الإعدادات المتقدمة لـ MistServer من كائن القناة."""
     return {
-        "DVR": getattr(channel, "dvr", 100000) or 100000,
-        "pagetimeout": getattr(channel, "pagetimeout", 80) or 80,
-        "maxkeepaway": getattr(channel, "maxkeepaway", 50000) or 50000,
+        "DVR": getattr(channel, "dvr", 200000) or 200000,
+        "pagetimeout": getattr(channel, "pagetimeout", 180) or 180,
+        "maxkeepaway": getattr(channel, "maxkeepaway", 195000) or 195000,
         "inputtimeout": getattr(channel, "inputtimeout", 120) or 120,
+        "segmentsize": getattr(channel, "segmentsize", 6000) or 6000,
         "always_on": bool(getattr(channel, "always_on", False)),
-        "raw": bool(getattr(channel, "raw", False)),
     }
 
 
@@ -174,7 +174,10 @@ def activate_streaming_service(
     if mist_check["status"] != "success":
         log_event(f"فشل التفعيل: {mist_check['message']}", "error", "streaming")
         raise HTTPException(status_code=503, detail=mist_check["message"])
-    return services.activate_streaming_service(db=db)
+    try:
+        return services.activate_streaming_service(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/api/streaming/refresh-channels", tags=["Streaming"])
@@ -284,6 +287,9 @@ def get_streaming_channels(
     """
     Get all streaming channels.
     """
+    subscription = services.get_or_create_streaming_subscription(db)
+    if not subscription.is_active:
+        return []
     return services.get_streaming_channels(db=db, skip=skip, limit=limit)
 
 
@@ -478,8 +484,8 @@ def get_channel_advanced_settings(
             "pagetimeout": channel.pagetimeout,
             "maxkeepaway": channel.maxkeepaway,
             "inputtimeout": channel.inputtimeout,
+            "segmentsize": channel.segmentsize,
             "always_on": channel.always_on,
-            "raw": channel.raw,
         }
     }
 
@@ -501,10 +507,10 @@ def set_channel_advanced_settings(
         if not channel:
             return {"status": "error", "message": f"القناة {channel_name} غير موجودة"}
 
-        for field in ("dvr", "pagetimeout", "maxkeepaway", "inputtimeout"):
+        for field in ("dvr", "pagetimeout", "maxkeepaway", "inputtimeout", "segmentsize"):
             if field in body:
                 setattr(channel, field, int(body[field]))
-        for field in ("always_on", "raw"):
+        for field in ("always_on",):
             if field in body:
                 setattr(channel, field, bool(body[field]))
 
@@ -532,12 +538,12 @@ def apply_defaults_advanced(
         if not channels:
             return {"status": "error", "message": "لا توجد قنوات"}
         for ch in channels:
-            ch.dvr = 100000
-            ch.pagetimeout = 80
-            ch.maxkeepaway = 50000
+            ch.dvr = 200000
+            ch.pagetimeout = 180
+            ch.maxkeepaway = 195000
             ch.inputtimeout = 120
+            ch.segmentsize = 6000
             ch.always_on = False
-            ch.raw = False
             stream_key = ch.stream_key or ch.name
             source_url = services.build_source_url_with_quality(
                 ch.url, services.normalize_video_quality(ch.video_quality)

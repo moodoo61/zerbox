@@ -79,8 +79,8 @@ const StreamingManager = ({ auth, userInfo }) => {
     const [advancedLoading, setAdvancedLoading] = useState(false);
     const [advancedSaving, setAdvancedSaving] = useState(false);
     const [advancedSettings, setAdvancedSettings] = useState({
-        dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
-        inputtimeout: 120, always_on: false, raw: false,
+        dvr: 200000, pagetimeout: 180, maxkeepaway: 195000,
+        inputtimeout: 120, segmentsize: 6000, always_on: false,
     });
 
     const TOAST_AUTO_HIDE_MS = 6000;
@@ -263,10 +263,17 @@ const StreamingManager = ({ auth, userInfo }) => {
                 setIsActivated(data.is_active);
                 if (data.is_active) {
                     fetchChannels();
+                } else {
+                    setChannels([]);
                 }
+            } else {
+                setIsActivated(false);
+                setChannels([]);
             }
         } catch (err) {
             console.error('Error checking activation status:', err);
+            setIsActivated(false);
+            setChannels([]);
         }
     };
 
@@ -347,7 +354,9 @@ const StreamingManager = ({ auth, userInfo }) => {
             }
 
         } catch (err) {
-            setError(`فشل في تفعيل الخدمة: ${err.message}`);
+            setError(err.message || 'تعذر تفعيل خدمة البث حالياً');
+            setIsActivated(false);
+            setChannels([]);
         } finally {
             setLoading(false);
         }
@@ -585,14 +594,14 @@ const StreamingManager = ({ auth, userInfo }) => {
                 setAdvancedSettings(data.settings);
             } else {
                 setAdvancedSettings({
-                    dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
-                    inputtimeout: 180, always_on: false, raw: false,
+                    dvr: 200000, pagetimeout: 180, maxkeepaway: 195000,
+                    inputtimeout: 180, segmentsize: 6000, always_on: false,
                 });
             }
         } catch {
             setAdvancedSettings({
-                dvr: 100000, pagetimeout: 80, maxkeepaway: 50000,
-                inputtimeout: 180, always_on: false, raw: false,
+                dvr: 200000, pagetimeout: 180, maxkeepaway: 195000,
+                inputtimeout: 180, segmentsize: 6000, always_on: false,
             });
         } finally {
             setAdvancedLoading(false);
@@ -1268,11 +1277,6 @@ const StreamingManager = ({ auth, userInfo }) => {
                                     label="تشغيل دائم"
                                     sx={{ flex: 1 }}
                                 />
-                                <FormControlLabel
-                                    control={<Switch checked={advancedSettings.raw} onChange={e => setAdvancedSettings(s => ({ ...s, raw: e.target.checked }))} color="primary" size="small" />}
-                                    label="تمرير مباشر"
-                                    sx={{ flex: 1 }}
-                                />
                             </Box>
                             <Divider />
                             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
@@ -1280,6 +1284,7 @@ const StreamingManager = ({ auth, userInfo }) => {
                                 <TextField label="مؤقت الانتظار" type="number" value={advancedSettings.pagetimeout} onChange={e => setAdvancedSettings(s => ({ ...s, pagetimeout: Number(e.target.value) }))} size="small" />
                                 <TextField label="المدة القصوى للتأخير" type="number" value={advancedSettings.maxkeepaway} onChange={e => setAdvancedSettings(s => ({ ...s, maxkeepaway: Number(e.target.value) }))} size="small" />
                                 <TextField label="مدة انتظار البيانات" type="number" value={advancedSettings.inputtimeout} onChange={e => setAdvancedSettings(s => ({ ...s, inputtimeout: Number(e.target.value) }))} size="small" />
+                                <TextField label="حجم المقطع" type="number" value={advancedSettings.segmentsize} onChange={e => setAdvancedSettings(s => ({ ...s, segmentsize: Number(e.target.value) }))} size="small" />
                             </Box>
                         </Box>
                     )}
