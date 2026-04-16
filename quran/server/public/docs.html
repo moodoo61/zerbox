@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="واجهة برمجة تطبيقات للقرآن الكريم - استكشف بيانات السور والآيات والتسجيلات الصوتية، وحمل قواعد البيانات بصيغ مختلفة مثل JSON وSQLite وCSV.">
+    <meta name="keywords"
+        content="API القرآن, بيانات القرآن, آيات القرآن, سور القرآن, القرآن الكريم, استرجاع الآيات, صوت القرآن, تجويد القرآن, تفسير القرآن, نصوص القرآن, تعليم القرآن, قراءة القرآن, ترجمة القرآن, حفظ القرآن, علوم القرآن, سور وآيات, آيات السجدة, تفسير الآيات, التطبيقات القرآنية, دروس القرآن, فقه القرآن, أمثلة القرآن, قراءة عصرية, نسخ القرآن, مواقع القرآن, Quran API, Quran data, Quran verses, Quran chapters, Holy Quran, Retrieve verses, Quran audio, Quran recitation, Quran interpretation, Quran texts, Quran education, Quran reading, Quran translation, Quran memorization, Quran sciences, Surahs and verses, Verses of prostration, Verse interpretation, Quranic applications, Quran lessons, Fiqh of the Quran, Quran examples, Modern recitation, Quran copies, Quran websites">
+    <meta name="author" content="Rayan Almalki">
+    <meta property="og:title" content="واجهة برمجة تطبيقات القرآن الكريم">
+    <meta property="og:description"
+        content="استعرض وثائق واجهة برمجة تطبيقات للقرآن الكريم، بما في ذلك تفاصيل السور والآيات والتسجيلات الصوتية، وحمل قواعد البيانات بصيغ مختلفة.">
+    <meta property="og:image" content="رابط_صورة_للواجهة_البينية_أو_الشعار">
+    <meta property="og:url" content="رابط_الموقع_الخاص_بك">
+    <meta name="twitter:card" content="/Quran-Data.webp">
+    <meta name="twitter:title" content="واجهة برمجة تطبيقات القرآن الكريم">
+    <meta name="twitter:description"
+        content="استعرض وثائق واجهة برمجة تطبيقات للقرآن الكريم، بما في ذلك تفاصيل السور والآيات والتسجيلات الصوتية، وحمل قواعد البيانات بصيغ مختلفة.">
+    <meta name="twitter:image" content="رابط_صورة_للواجهة_البينية_أو_الشعار">
+    <title>واجهة برمجة تطبيقات القرآن الكريم - quran api - quran json</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        body,
+        html {
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0px 0px 0px 0px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+
+        footer {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #menufo a {
+            text-decoration: none;
+            background-color: #a7a7a7;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-content: center;
+            align-items: center;
+            flex-wrap: nowrap;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000000;
+            background-color: #007bff80;
+            backdrop-filter: blur(10px);
+            direction: rtl;
+            margin: 0px auto;
+        }
+
+        header a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0px auto;
+        }
+
+        header h1 {
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+
+
+        nav ul {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            gap: 5px;
+            margin-left: 10px;
+
+        }
+
+        nav ul li a {
+            color: #fff;
+            font-size: 12px;
+            border-radius: 10px;
+            background-color: #00000053;
+            padding: 5px;
+            white-space: nowrap;
+        }
+
+        #imgQuran {
+            display: block;
+            width: 90%;
+            max-width: 700px;
+            margin: 10px auto;
+            border-radius: 10px;
+            margin-top: 120px;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h2 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        #download a {
+            display: block;
+            background-color: #eeeeee;
+            color: #007bff;
+            border-radius: 7px;
+            padding: 10px;
+            margin: 10px auto;
+            text-decoration: none;
+        }
+
+        #download a:hover {
+            display: block;
+            background-color: #007bff;
+            color: #eeeeee;
+        }
+
+        footer nav a {
+            margin: 0 10px;
+        }
+
+        #Keywords {
+            width: 90%;
+            list-style: none;
+            padding: 5px;
+            line-height: 1.8;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 20px auto;
+            display: flex;
+            justify-content: space-around;
+            align-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #Keywords li {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #e0e0e0;
+
+        }
+
+        .sc-gfoqjT {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="/">واجهة برمجة تطبيقات القرآن الكريم</a></h1>
+        <nav>
+            <ul>
+                <li><a href="https://github.com/rn0x/Quran-Data" target="_blank">الكود</a></li>
+                <li><a href="#download">تحميل قواعد البيانات</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <img src="/Quran-Data.webp" alt="Quran-Data" aria-label="Quran-Data" id="imgQuran">
+
+    <div id="redoc-container" class="container"></div>
+
+
+    <div class="container" id="download" style="direction: rtl;">
+        <img src="https://img.shields.io/github/downloads/rn0x/Quran-Data/total?color=blue&label=Total%20Downloads"
+            alt="Total Downloads" title="Total Downloads" aria-label="Total-Downloads">
+        <h2>تحميل قواعد البيانات</h2>
+        <a href="https://github.com/rn0x/Quran-Json/releases/download/database/database.json" target="_blank">تحميل
+            قاعدة
+            بيانات JSON</a>
+        <a href="https://github.com/rn0x/Quran-Json/releases/download/database/database.sqlite" target="_blank">تحميل
+            قاعدة بيانات SQLite</a>
+        <a href="https://github.com/rn0x/Quran-Json/releases/download/database/database.csv" target="_blank">تحميل قاعدة
+            بيانات CSV</a>
+    </div>
+
+    <ul id="Keywords">
+        <li>API القرآن</li>
+        <li>بيانات القرآن</li>
+        <li>آيات القرآن</li>
+        <li>سور القرآن</li>
+        <li>القرآن الكريم</li>
+        <li>استرجاع الآيات</li>
+        <li>صوت القرآن</li>
+        <li>تجويد القرآن</li>
+        <li>تفسير القرآن</li>
+        <li>نصوص القرآن</li>
+        <li>تعليم القرآن</li>
+        <li>قراءة القرآن</li>
+        <li>ترجمة القرآن</li>
+        <li>حفظ القرآن</li>
+        <li>علوم القرآن</li>
+        <li>سور وآيات</li>
+        <li>آيات السجدة</li>
+        <li>تفسير الآيات</li>
+        <li>التطبيقات القرآنية</li>
+        <li>دروس القرآن</li>
+        <li>فقه القرآن</li>
+        <li>أمثلة القرآن</li>
+        <li>قراءة عصرية</li>
+        <li>نسخ القرآن</li>
+        <li>مواقع القرآن</li>
+        <li>Quran API</li>
+        <li>Quran data</li>
+        <li>Quran verses</li>
+        <li>Quran chapters</li>
+        <li>Holy Quran</li>
+        <li>Retrieve verses</li>
+        <li>Quran audio</li>
+        <li>Quran recitation</li>
+        <li>Quran interpretation</li>
+        <li>Quran texts</li>
+        <li>Quran education</li>
+        <li>Quran reading</li>
+        <li>Quran translation</li>
+        <li>Quran memorization</li>
+        <li>Quran sciences</li>
+        <li>Surahs and verses</li>
+        <li>Verses of prostration</li>
+        <li>Verse interpretation</li>
+        <li>Quranic applications</li>
+        <li>Quran lessons</li>
+        <li>Fiqh of the Quran</li>
+        <li>Quran examples</li>
+        <li>Modern recitation</li>
+        <li>Quran copies</li>
+        <li>Quran websites</li>
+    </ul>
+
+    <small style="text-align: center; display: block; direction: rtl;">
+        للهم أجعل هذا العمل صدقه جاريه لي ولوالدي ولأهل بيتي ولكل من ساهم او دعم او نشر هذه المشروع 🤲🏻
+    </small>
+
+    <footer>
+        <p>&copy; 2024 <a href="http://github.com/rn0x/Quran-Data" target="_blank"
+                rel="noopener noreferrer">Quran-Data</a>.</p>
+        <div id="menufo">
+            <a href="http://github.com/rn0x" target="_blank" rel="noopener noreferrer">Github</a>
+            <a href="http://t.me/tqw24h" target="_blank" rel="noopener noreferrer">@tqw24h</a>
+            <a href="https://t.me/KanzislamNet" target="_blank" rel="noopener noreferrer">@KanzislamNet</a>
+            <a href="https://i8x.net" target="_blank" rel="noopener noreferrer">i8x.net</a>
+
+        </div>
+    </footer>
+
+    <script src="/redoc.standalone.js"></script>
+    <script>
+        Redoc.init('/docs/api-definition.yaml', {}, document.getElementById('redoc-container'));
+    </script>
+</body>
+
+</html>

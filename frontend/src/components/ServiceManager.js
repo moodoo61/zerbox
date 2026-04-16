@@ -3,7 +3,7 @@ import Modal from './Modal';
 import {
     Box, Button, Table, TableBody, TableCell, TableContainer, TableHead,
     TableRow, Paper, IconButton, Typography, TextField, Alert, CircularProgress, Link,
-    Tabs, Tab, Card, CardContent, Switch, FormControlLabel, Chip
+    Tabs, Tab, Card, CardContent, Switch, FormControlLabel, Chip, Checkbox, LinearProgress
 } from '@mui/material';
 import { 
     Edit as EditIcon, 
@@ -15,7 +15,9 @@ import {
     Refresh as RefreshIcon,
     Settings as SettingsIcon,
     Language as LanguageIcon,
-    MenuBook as MenuBookIcon
+    MenuBook as MenuBookIcon,
+    Download as DownloadIcon,
+    Pause as PauseIcon
 } from '@mui/icons-material';
 import ServiceStatsManager from './ServiceStatsManager';
 
@@ -58,6 +60,15 @@ const ServiceManager = ({ auth, userInfo }) => {
     const [defaultServiceImageFile, setDefaultServiceImageFile] = useState(null);
     const [isSavingDefaultService, setIsSavingDefaultService] = useState(false);
     const defaultServiceFileInputRef = useRef(null);
+    
+    // Quran settings modal state
+    const [isQuranSettingsOpen, setIsQuranSettingsOpen] = useState(false);
+    const [quranSettings, setQuranSettings] = useState(null);
+    const [quranLoading, setQuranLoading] = useState(false);
+    const [quranActionLoading, setQuranActionLoading] = useState(false);
+    const [quranError, setQuranError] = useState(null);
+    const [selectedReciterIds, setSelectedReciterIds] = useState([]);
+    const [quranSelectionDirty, setQuranSelectionDirty] = useState(false);
 
     const fetchServices = useCallback(async () => {
         try {
@@ -406,6 +417,160 @@ const ServiceManager = ({ auth, userInfo }) => {
         setDefaultServiceError(null);
     };
 
+    const isQuranService = (service) => {
+        const n = (service?.name || '').trim();
+        return n.includes('القرآن') || n.includes('قرآن');
+    };
+
+    const fetchQuranSettings = useCallback(async (syncSelection = false) => {
+        const response = await fetch('/api/quran/settings', {
+            headers: { 'Authorization': `Basic ${auth}` }
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'فشل في جلب إعدادات القرآن');
+        }
+        const data = await response.json();
+        setQuranSettings(data);
+        if (syncSelection) {
+            setSelectedReciterIds(data.selected_reciter_ids || []);
+            setQuranSelectionDirty(false);
+        }
+    }, [auth]);
+
+    const openQuranSettings = async () => {
+        setQuranError(null);
+        setQuranLoading(true);
+        setIsQuranSettingsOpen(true);
+        try {
+            await fetchQuranSettings(true);
+        } catch (e) {
+            setQuranError(e.message);
+        } finally {
+            setQuranLoading(false);
+        }
+    };
+
+    const closeQuranSettings = () => {
+        setIsQuranSettingsOpen(false);
+        setQuranError(null);
+    };
+
+    useEffect(() => {
+        if (!isQuranSettingsOpen) return undefined;
+        const timer = setInterval(() => {
+            fetchQuranSettings(!quranSelectionDirty).catch(() => {});
+        }, 3000);
+        return () => clearInterval(timer);
+    }, [isQuranSettingsOpen, fetchQuranSettings, quranSelectionDirty]);
+
+    const toggleReciterSelection = (reciterId) => {
+        setQuranSelectionDirty(true);
+        setSelectedReciterIds(prev => (
+            prev.includes(reciterId)
+                ? prev.filter(x => x !== reciterId)
+                : [...prev, reciterId]
+        ));
+    };
+
+    const saveRecitersSelection = async () => {
+        setQuranActionLoading(true);
+        setQuranError(null);
+        try {
+            const response = await fetch('/api/quran/settings/select-reciters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${auth}`
+                },
+                body: JSON.stringify({ reciter_ids: selectedReciterIds }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'فشل في حفظ التحديد');
+            }
+            await fetchQuranSettings(true);
+            setDefaultServiceSuccess('تم حفظ اختيار المقرئين');
+        } catch (e) {
+            setQuranError(e.message);
+        } finally {
+            setQuranActionLoading(false);
+        }
+    };
+
+    const startRecitersDownload = async () => {
+        setQuranActionLoading(true);
+        setQuranError(null);
+        try {
+            const response = await fetch('/api/quran/download/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${auth}`
+                },
+                body: JSON.stringify({ reciter_ids: selectedReciterIds }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'فشل في بدء التنزيل');
+            }
+            await fetchQuranSettings(false);
+            setDefaultServiceSuccess('تم بدء تنزيل المقرئين المحددين');
+        } catch (e) {
+            setQuranError(e.message);
+        } finally {
+            setQuranActionLoading(false);
+        }
+    };
+
+    const pauseRecitersDownload = async () => {
+        setQuranActionLoading(true);
+        setQuranError(null);
+        try {
+            await fetch('/api/quran/download/pause', {
+                method: 'POST',
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            await fetchQuranSettings(false);
+        } catch (e) {
+            setQuranError(e.message || 'فشل الإيقاف المؤقت');
+        } finally {
+            setQuranActionLoading(false);
+        }
+    };
+
+    const resumeRecitersDownload = async () => {
+        setQuranActionLoading(true);
+        setQuranError(null);
+        try {
+            await fetch('/api/quran/download/resume', {
+                method: 'POST',
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            await fetchQuranSettings(false);
+        } catch (e) {
+            setQuranError(e.message || 'فشل استئناف التنزيل');
+        } finally {
+            setQuranActionLoading(false);
+        }
+    };
+
+    const stopRecitersDownload = async () => {
+        setQuranActionLoading(true);
+        setQuranError(null);
+        try {
+            await fetch('/api/quran/download/stop', {
+                method: 'POST',
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            await fetchQuranSettings(false);
+        } catch (e) {
+            setQuranError(e.message || 'فشل إيقاف التنزيل');
+        } finally {
+            setQuranActionLoading(false);
+        }
+    };
+
     return (
         <>
             <Paper sx={{ width: '100%' }}>
@@ -548,6 +713,16 @@ const ServiceManager = ({ auth, userInfo }) => {
                                                             >
                                                                 <EditIcon />
                                                             </IconButton>
+                                                            {isQuranService(service) && (
+                                                                <IconButton
+                                                                    onClick={openQuranSettings}
+                                                                    color="secondary"
+                                                                    size="small"
+                                                                    aria-label="إعدادات القرآن"
+                                                                >
+                                                                    <SettingsIcon />
+                                                                </IconButton>
+                                                            )}
                                                         </Box>
                                                         <Chip 
                                                             label={service.is_running ? 'تعمل' : 'لا تعمل'}
@@ -832,6 +1007,114 @@ const ServiceManager = ({ auth, userInfo }) => {
                            </Box>
                         )}
                     </Box>
+                </Box>
+            </Modal>
+
+            <Modal
+                isOpen={isQuranSettingsOpen}
+                onClose={closeQuranSettings}
+                title="إعدادات القرآن الكريم"
+                actions={
+                    <>
+                        <Button onClick={closeQuranSettings}>إغلاق</Button>
+                        <Button onClick={saveRecitersSelection} variant="outlined" disabled={quranActionLoading || quranLoading}>
+                            {quranActionLoading ? <CircularProgress size={20} /> : 'حفظ الاختيار'}
+                        </Button>
+                        {quranSettings?.download_state?.status === 'downloading' && (
+                            <Button
+                                onClick={pauseRecitersDownload}
+                                variant="outlined"
+                                startIcon={<PauseIcon />}
+                                disabled={quranActionLoading || quranLoading}
+                            >
+                                إيقاف مؤقت
+                            </Button>
+                        )}
+                        {quranSettings?.download_state?.status === 'paused' && (
+                            <Button
+                                onClick={resumeRecitersDownload}
+                                variant="outlined"
+                                startIcon={<PlayIcon />}
+                                disabled={quranActionLoading || quranLoading}
+                            >
+                                استئناف
+                            </Button>
+                        )}
+                        {(quranSettings?.download_state?.status === 'downloading' || quranSettings?.download_state?.status === 'paused') && (
+                            <Button
+                                onClick={stopRecitersDownload}
+                                variant="outlined"
+                                color="error"
+                                startIcon={<StopIcon />}
+                                disabled={quranActionLoading || quranLoading}
+                            >
+                                إيقاف
+                            </Button>
+                        )}
+                        <Button
+                            onClick={startRecitersDownload}
+                            variant="contained"
+                            startIcon={<DownloadIcon />}
+                            disabled={quranActionLoading || quranLoading || selectedReciterIds.length === 0}
+                        >
+                            بدء تنزيل المحدد
+                        </Button>
+                    </>
+                }
+            >
+                <Box sx={{ mt: 1 }}>
+                    {quranError && <Alert severity="error" sx={{ mb: 2 }}>{quranError}</Alert>}
+                    {quranLoading && <CircularProgress size={26} />}
+
+                    {!quranLoading && quranSettings && (
+                        <>
+                            <Alert severity="info" sx={{ mb: 2 }}>
+                                وضع التشغيل المتاح لخدمة القرآن: <strong>محلي فقط</strong>
+                            </Alert>
+
+                            <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                <Chip label={`إجمالي المقرئين: ${quranSettings.reciters?.length || 0}`} size="small" />
+                                <Chip label={`المكتمل تنزيلهم: ${quranSettings.downloaded_reciters?.length || 0}`} color="success" size="small" />
+                                <Chip label={`غير مكتملين: ${quranSettings.pending_reciters?.length || 0}`} color="warning" size="small" />
+                            </Box>
+
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" sx={{ mb: 1 }}>حالة التنزيل الحالية</Typography>
+                                <LinearProgress variant="determinate" value={quranSettings.download_state?.progress || 0} />
+                                <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                    <Chip label={`الحالة: ${quranSettings.download_state?.status || 'idle'}`} size="small" />
+                                    <Chip label={`التقدم: ${quranSettings.download_state?.progress || 0}%`} size="small" />
+                                    <Chip label={`المنجز: ${quranSettings.download_state?.processed_targets || 0} / ${quranSettings.download_state?.total_targets || 0}`} size="small" />
+                                    <Chip label={`تم تنزيله: ${quranSettings.download_state?.downloaded_files || 0}`} color="primary" size="small" />
+                                    <Chip label={`موجود مسبقاً: ${quranSettings.download_state?.skipped_files || 0}`} color="default" size="small" />
+                                    <Chip label={`فشل: ${quranSettings.download_state?.failed_files || 0}`} color="error" size="small" />
+                                </Box>
+                                <Typography variant="caption" color="text.secondary">
+                                    {quranSettings.download_state?.message || 'لا توجد عملية تنزيل حالياً'}
+                                </Typography>
+                            </Box>
+
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                المقرئون غير المكتمل تنزيلهم
+                            </Typography>
+                            <Box sx={{ maxHeight: 300, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                                {(quranSettings.pending_reciters || []).map((r) => (
+                                    <Box key={r.id} sx={{ display: 'flex', alignItems: 'center', py: 0.5 }}>
+                                        <Checkbox
+                                            checked={selectedReciterIds.includes(r.id)}
+                                            onChange={() => toggleReciterSelection(r.id)}
+                                        />
+                                        <Typography variant="body2">{r.name_ar}</Typography>
+                                    </Box>
+                                ))}
+                                {(quranSettings.pending_reciters || []).length === 0 && (
+                                    <Typography variant="body2" color="text.secondary">
+                                        جميع المقرئين تم تنزيل ملفاتهم الصوتية بالكامل.
+                                    </Typography>
+                                )}
+                            </Box>
+                        </>
+                    )}
                 </Box>
             </Modal>
         </>

@@ -1,0 +1,2214 @@
+[
+  {
+    "id": 1,
+    "reciter": {
+      "ar": "أحمد الحواشي",
+      "en": "Ahmed Al-Hawashi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/hawashi",
+    "link": "/data/audio/surah_21/reciter_1_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_1_021.mp3"
+  },
+  {
+    "id": 2,
+    "reciter": {
+      "ar": "أحمد السويلم",
+      "en": "Ahmed Al-Suwailem"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server14.mp3quran.net/swlim/Rewayat-Hafs-A-n-Assem/",
+    "link": "/data/audio/surah_21/reciter_2_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_2_021.mp3"
+  },
+  {
+    "id": 3,
+    "reciter": {
+      "ar": "أحمد الطرابلسي",
+      "en": "Ahmed Trabelsi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/trabulsi",
+    "link": "/data/audio/surah_21/reciter_3_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_3_021.mp3"
+  },
+  {
+    "id": 4,
+    "reciter": {
+      "ar": "أحمد بن علي العجمي",
+      "en": "Ahmed bin Ali Al-Ajmi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/ajm/128",
+    "link": "/data/audio/surah_21/reciter_4_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_4_021.mp3"
+  },
+  {
+    "id": 5,
+    "reciter": {
+      "ar": "أحمد خضر الطرابلسي",
+      "en": "Ahmed Khader Trabelsi"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server10.mp3quran.net/trablsi",
+    "link": "/data/audio/surah_21/reciter_5_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_5_021.mp3"
+  },
+  {
+    "id": 6,
+    "reciter": {
+      "ar": "أحمد خليل شاهين",
+      "en": "Ahmed Khalil Shaheen"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/shaheen/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_6_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_6_021.mp3"
+  },
+  {
+    "id": 7,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "شعبة عن عاصم",
+      "en": "Shu'bah about Asim"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Sho-bah-A-n-Asim",
+    "link": "/data/audio/surah_21/reciter_7_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_7_021.mp3"
+  },
+  {
+    "id": 8,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "البزي عن ابن كثير",
+      "en": "Al-Bazi on the authority of Ibn Kathir"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Albizi-A-n-Ibn-Katheer",
+    "link": "/data/audio/surah_21/reciter_8_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_8_021.mp3"
+  },
+  {
+    "id": 9,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_9_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_9_021.mp3"
+  },
+  {
+    "id": 10,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "قنبل عن ابن كثير",
+      "en": "Qunbil on the authority of Ibn Kathir"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Qunbol-A-n-Ibn-Katheer",
+    "link": "/data/audio/surah_21/reciter_10_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_10_021.mp3"
+  },
+  {
+    "id": 11,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_11_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_11_021.mp3"
+  },
+  {
+    "id": 12,
+    "reciter": {
+      "ar": "أحمد ديبان",
+      "en": "Ahmed Diban"
+    },
+    "rewaya": {
+      "ar": "الدوري عن أبي عمرو",
+      "en": "Al-Duri on the authority of Abu Amr"
+    },
+    "server": "https://server16.mp3quran.net/deban/Rewayat-Aldori-A-n-Abi-Amr",
+    "link": "/data/audio/surah_21/reciter_12_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_12_021.mp3"
+  },
+  {
+    "id": 13,
+    "reciter": {
+      "ar": "أحمد صابر",
+      "en": "Ahmed Saber"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/saber",
+    "link": "/data/audio/surah_21/reciter_13_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_13_021.mp3"
+  },
+  {
+    "id": 14,
+    "reciter": {
+      "ar": "أحمد عامر",
+      "en": "Ahmed Amer"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/Aamer",
+    "link": "/data/audio/surah_21/reciter_14_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_14_021.mp3"
+  },
+  {
+    "id": 15,
+    "reciter": {
+      "ar": "أحمد عيسى المعصراوي",
+      "en": "Ahmed Issa Al-Maasrawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/a_maasaraawi/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_15_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_15_021.mp3"
+  },
+  {
+    "id": 16,
+    "reciter": {
+      "ar": "أحمد نعينع",
+      "en": "Ahmed Naina"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/ahmad_nu",
+    "link": "/data/audio/surah_21/reciter_16_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_16_021.mp3"
+  },
+  {
+    "id": 17,
+    "reciter": {
+      "ar": "أكرم العلاقمي",
+      "en": "Akram Al-Alaqmi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/akrm",
+    "link": "/data/audio/surah_21/reciter_17_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_17_021.mp3"
+  },
+  {
+    "id": 18,
+    "reciter": {
+      "ar": "إبراهيم الأخضر",
+      "en": "Ibrahim Al-Akhdar"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/akdr",
+    "link": "/data/audio/surah_21/reciter_18_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_18_021.mp3"
+  },
+  {
+    "id": 19,
+    "reciter": {
+      "ar": "إبراهيم الجرمي",
+      "en": "Ibrahim Al-Jarmi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/jormy",
+    "link": "/data/audio/surah_21/reciter_19_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_19_021.mp3"
+  },
+  {
+    "id": 20,
+    "reciter": {
+      "ar": "إبراهيم الدوسري",
+      "en": "Ibrahim Al-Dosari"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server10.mp3quran.net/ibrahim_dosri/Rewayat-Warsh-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_20_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_20_021.mp3"
+  },
+  {
+    "id": 21,
+    "reciter": {
+      "ar": "إبراهيم الدوسري",
+      "en": "Ibrahim Al-Dosari"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/ibrahim_dosri/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_21_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_21_021.mp3"
+  },
+  {
+    "id": 22,
+    "reciter": {
+      "ar": "إبراهيم كشيدان",
+      "en": "Ibrahim Kashidan"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/i_kshidan/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_22_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_22_021.mp3"
+  },
+  {
+    "id": 23,
+    "reciter": {
+      "ar": "الدوكالي محمد العالم",
+      "en": "Doukali Muhammad Al-Alam"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server7.mp3quran.net/dokali",
+    "link": "/data/audio/surah_21/reciter_23_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_23_021.mp3"
+  },
+  {
+    "id": 24,
+    "reciter": {
+      "ar": "الزين محمد أحمد",
+      "en": "Al-Zein Muhammad Ahmed"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/alzain",
+    "link": "/data/audio/surah_21/reciter_24_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_24_021.mp3"
+  },
+  {
+    "id": 25,
+    "reciter": {
+      "ar": "العيون الكوشي",
+      "en": "Kushite eyes"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server11.mp3quran.net/koshi",
+    "link": "/data/audio/surah_21/reciter_25_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_25_021.mp3"
+  },
+  {
+    "id": 26,
+    "reciter": {
+      "ar": "الفاتح محمد الزبير",
+      "en": "Al-Fatih Muhammad Al-Zubair"
+    },
+    "rewaya": {
+      "ar": "الدوري عن أبي عمرو",
+      "en": "Al-Duri on the authority of Abu Amr"
+    },
+    "server": "https://server6.mp3quran.net/fateh",
+    "link": "/data/audio/surah_21/reciter_26_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_26_021.mp3"
+  },
+  {
+    "id": 27,
+    "reciter": {
+      "ar": "القارئ ياسين",
+      "en": "Reader Yassin"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server11.mp3quran.net/qari",
+    "link": "/data/audio/surah_21/reciter_27_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_27_021.mp3"
+  },
+  {
+    "id": 28,
+    "reciter": {
+      "ar": "بدر التركي",
+      "en": "Badr Al-Turki"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/bader/Rewayat-Hafs-A-n-Assem/",
+    "link": "/data/audio/surah_21/reciter_28_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_28_021.mp3"
+  },
+  {
+    "id": 29,
+    "reciter": {
+      "ar": "بندر بليله",
+      "en": "Bandar at night"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/balilah",
+    "link": "/data/audio/surah_21/reciter_29_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_29_021.mp3"
+  },
+  {
+    "id": 30,
+    "reciter": {
+      "ar": "بيشه وا قادر الكردي",
+      "en": "Yes, you can do it"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/peshawa/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_30_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_30_021.mp3"
+  },
+  {
+    "id": 31,
+    "reciter": {
+      "ar": "توفيق الصايغ",
+      "en": "Tawfiq Al Sayegh"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/twfeeq",
+    "link": "/data/audio/surah_21/reciter_31_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_31_021.mp3"
+  },
+  {
+    "id": 32,
+    "reciter": {
+      "ar": "جمال شاكر عبدالله",
+      "en": "Jamal Shaker Abdullah"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/jamal",
+    "link": "/data/audio/surah_21/reciter_32_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_32_021.mp3"
+  },
+  {
+    "id": 33,
+    "reciter": {
+      "ar": "جمعان العصيمي",
+      "en": "Juman Al-Osaimi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/jaman",
+    "link": "/data/audio/surah_21/reciter_33_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_33_021.mp3"
+  },
+  {
+    "id": 34,
+    "reciter": {
+      "ar": "حاتم فريد الواعر",
+      "en": "Hatem Farid Al Waer"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/hatem",
+    "link": "/data/audio/surah_21/reciter_34_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_34_021.mp3"
+  },
+  {
+    "id": 35,
+    "reciter": {
+      "ar": "خالد الجليل",
+      "en": "Khaled Al-Jalil"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/jleel",
+    "link": "/data/audio/surah_21/reciter_35_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_35_021.mp3"
+  },
+  {
+    "id": 36,
+    "reciter": {
+      "ar": "خالد القحطاني",
+      "en": "Khaled Al-Qahtani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/qht",
+    "link": "/data/audio/surah_21/reciter_36_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_36_021.mp3"
+  },
+  {
+    "id": 37,
+    "reciter": {
+      "ar": "خالد المهنا",
+      "en": "Khaled Al-Muhanna"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/mohna",
+    "link": "/data/audio/surah_21/reciter_37_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_37_021.mp3"
+  },
+  {
+    "id": 38,
+    "reciter": {
+      "ar": "خالد عبدالكافي",
+      "en": "Khaled Abdel Kafi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/kafi",
+    "link": "/data/audio/surah_21/reciter_38_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_38_021.mp3"
+  },
+  {
+    "id": 39,
+    "reciter": {
+      "ar": "خالد كريم محمدي",
+      "en": "Khaled Karim Mohammadi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/kh_mohammadi/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_39_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_39_021.mp3"
+  },
+  {
+    "id": 40,
+    "reciter": {
+      "ar": "خليفة الطنيجي",
+      "en": "Khalifa Al-Taniji"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/tnjy",
+    "link": "/data/audio/surah_21/reciter_40_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_40_021.mp3"
+  },
+  {
+    "id": 41,
+    "reciter": {
+      "ar": "رامي الدعيس",
+      "en": "Rami Al-Dais"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/rami",
+    "link": "/data/audio/surah_21/reciter_41_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_41_021.mp3"
+  },
+  {
+    "id": 42,
+    "reciter": {
+      "ar": "رشيد بلعالية",
+      "en": "Rachid Belalia"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server6.mp3quran.net/bl3/Rewayat-Warsh-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_42_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_42_021.mp3"
+  },
+  {
+    "id": 43,
+    "reciter": {
+      "ar": "زكي داغستاني",
+      "en": "Zaki Daghestani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/zaki",
+    "link": "/data/audio/surah_21/reciter_43_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_43_021.mp3"
+  },
+  {
+    "id": 44,
+    "reciter": {
+      "ar": "سعد الغامدي",
+      "en": "Saad Al-Ghamdi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server7.mp3quran.net/s_gmd",
+    "link": "/data/audio/surah_21/reciter_44_021.mp3",
+    "originalLink": "https://server7.mp3quran.net/s_gmd/021.mp3"
+  },
+  {
+    "id": 45,
+    "reciter": {
+      "ar": "سعد المقرن",
+      "en": "Saad Al-Muqrin"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/saad/Rewayat-Hafs-A-n-Assem/",
+    "link": "/data/audio/surah_21/reciter_45_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_45_021.mp3"
+  },
+  {
+    "id": 46,
+    "reciter": {
+      "ar": "سعود الشريم",
+      "en": "Saud Al-Shuraim"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server7.mp3quran.net/shur",
+    "link": "/data/audio/surah_21/reciter_46_021.mp3",
+    "originalLink": "https://server7.mp3quran.net/shur/021.mp3"
+  },
+  {
+    "id": 47,
+    "reciter": {
+      "ar": "سلمان الصديق",
+      "en": "Salman Al-Siddiq"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/s_sadeiq/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_47_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_47_021.mp3"
+  },
+  {
+    "id": 48,
+    "reciter": {
+      "ar": "سهل ياسين",
+      "en": "Sahl Yassin"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/shl",
+    "link": "/data/audio/surah_21/reciter_48_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_48_021.mp3"
+  },
+  {
+    "id": 49,
+    "reciter": {
+      "ar": "سيد أحمد هاشمي",
+      "en": "Syed Ahmed Hashemi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/s_hashemi/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_49_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_49_021.mp3"
+  },
+  {
+    "id": 50,
+    "reciter": {
+      "ar": "سيد رمضان",
+      "en": "Mr. Ramadan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/sayed",
+    "link": "/data/audio/surah_21/reciter_50_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_50_021.mp3"
+  },
+  {
+    "id": 51,
+    "reciter": {
+      "ar": "شيخ أبو بكر الشاطري",
+      "en": "Sheikh Abu Bakr Al-Shatri"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/shatri",
+    "link": "/data/audio/surah_21/reciter_51_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_51_021.mp3"
+  },
+  {
+    "id": 52,
+    "reciter": {
+      "ar": "شيرزاد عبدالرحمن طاهر",
+      "en": "Shirzad Abdulrahman Taher"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/taher",
+    "link": "/data/audio/surah_21/reciter_52_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_52_021.mp3"
+  },
+  {
+    "id": 53,
+    "reciter": {
+      "ar": "صابر عبدالحكم",
+      "en": "Saber Abdel Hakam"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/hkm",
+    "link": "/data/audio/surah_21/reciter_53_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_53_021.mp3"
+  },
+  {
+    "id": 54,
+    "reciter": {
+      "ar": "صالح الشمراني",
+      "en": "Saleh Al-Shamrani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/shamrani/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_54_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_54_021.mp3"
+  },
+  {
+    "id": 55,
+    "reciter": {
+      "ar": "صالح الهبدان",
+      "en": "Saleh Al Habdan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/habdan",
+    "link": "/data/audio/surah_21/reciter_55_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_55_021.mp3"
+  },
+  {
+    "id": 56,
+    "reciter": {
+      "ar": "صلاح البدير",
+      "en": "Salah Al-Badir"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/s_bud",
+    "link": "/data/audio/surah_21/reciter_56_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_56_021.mp3"
+  },
+  {
+    "id": 57,
+    "reciter": {
+      "ar": "صلاح الهاشم",
+      "en": "Salah Al-Hashem"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/salah_hashim_m",
+    "link": "/data/audio/surah_21/reciter_57_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_57_021.mp3"
+  },
+  {
+    "id": 58,
+    "reciter": {
+      "ar": "صلاح بو خاطر",
+      "en": "Salah Bou Khater"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/bu_khtr",
+    "link": "/data/audio/surah_21/reciter_58_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_58_021.mp3"
+  },
+  {
+    "id": 59,
+    "reciter": {
+      "ar": "طارق عبدالغني دعوب",
+      "en": "Tariq Abdul Ghani Daoub"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server10.mp3quran.net/tareq",
+    "link": "/data/audio/surah_21/reciter_59_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_59_021.mp3"
+  },
+  {
+    "id": 60,
+    "reciter": {
+      "ar": "عادل الكلباني",
+      "en": "Adel Al-Kalbani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/a_klb",
+    "link": "/data/audio/surah_21/reciter_60_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_60_021.mp3"
+  },
+  {
+    "id": 61,
+    "reciter": {
+      "ar": "عادل ريان",
+      "en": "Adel Rayan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/ryan",
+    "link": "/data/audio/surah_21/reciter_61_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_61_021.mp3"
+  },
+  {
+    "id": 62,
+    "reciter": {
+      "ar": "عبدالإله بن عون",
+      "en": "Abdul-Ilah bin Aoun"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/a_binaoun/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_62_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_62_021.mp3"
+  },
+  {
+    "id": 63,
+    "reciter": {
+      "ar": "عبدالبارئ الثبيتي",
+      "en": "Abdul Bara Al-Thubaiti"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/thubti",
+    "link": "/data/audio/surah_21/reciter_63_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_63_021.mp3"
+  },
+  {
+    "id": 64,
+    "reciter": {
+      "ar": "عبدالبارئ محمد",
+      "en": "Abdul Bare Muhammad"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/bari",
+    "link": "/data/audio/surah_21/reciter_64_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_64_021.mp3"
+  },
+  {
+    "id": 65,
+    "reciter": {
+      "ar": "عبدالباسط عبدالصمد ",
+      "en": "Abdel Basset Abdel Samad"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server7.mp3quran.net/basit/Almusshaf-Al-Mojawwad",
+    "link": "/data/audio/surah_21/reciter_65_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_65_021.mp3"
+  },
+  {
+    "id": 66,
+    "reciter": {
+      "ar": "عبدالباسط عبدالصمد ",
+      "en": "Abdel Basset Abdel Samad"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server7.mp3quran.net/basit",
+    "link": "/data/audio/surah_21/reciter_66_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_66_021.mp3"
+  },
+  {
+    "id": 67,
+    "reciter": {
+      "ar": "عبدالباسط عبدالصمد ",
+      "en": "Abdel Basset Abdel Samad"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server7.mp3quran.net/basit/Rewayat-Warsh-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_67_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_67_021.mp3"
+  },
+  {
+    "id": 68,
+    "reciter": {
+      "ar": "عبدالرحمن السديس",
+      "en": "Abdul Rahman Al-Sudais"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/sds",
+    "link": "/data/audio/surah_21/reciter_68_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_68_021.mp3"
+  },
+  {
+    "id": 69,
+    "reciter": {
+      "ar": "عبدالرحمن العوسي",
+      "en": "Abdul Rahman Al-Awsi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/aloosi",
+    "link": "/data/audio/surah_21/reciter_69_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_69_021.mp3"
+  },
+  {
+    "id": 70,
+    "reciter": {
+      "ar": "عبدالرحمن الماجد",
+      "en": "Abdul Rahman Al Majid"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/a_majed",
+    "link": "/data/audio/surah_21/reciter_70_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_70_021.mp3"
+  },
+  {
+    "id": 71,
+    "reciter": {
+      "ar": "عبدالرشيد صوفي",
+      "en": "Abdul Rashid Sufi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/soufi/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_71_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_71_021.mp3"
+  },
+  {
+    "id": 72,
+    "reciter": {
+      "ar": "عبدالرشيد صوفي",
+      "en": "Abdul Rashid Sufi"
+    },
+    "rewaya": {
+      "ar": "خلف عن حمزة",
+      "en": "Khalaf on the authority of Hamza"
+    },
+    "server": "https://server16.mp3quran.net/soufi/Rewayat-Khalaf-A-n-Hamzah",
+    "link": "/data/audio/surah_21/reciter_72_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_72_021.mp3"
+  },
+  {
+    "id": 73,
+    "reciter": {
+      "ar": "عبدالرشيد صوفي",
+      "en": "Abdul Rashid Sufi"
+    },
+    "rewaya": {
+      "ar": "السوسي عن أبي عمرو",
+      "en": "Al-Susi on the authority of Abu Amr"
+    },
+    "server": "https://server16.mp3quran.net/soufi/Rewayat-Assosi-A-n-Abi-Amr",
+    "link": "/data/audio/surah_21/reciter_73_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_73_021.mp3"
+  },
+  {
+    "id": 74,
+    "reciter": {
+      "ar": "عبدالعزيز الأحمد",
+      "en": "Abdulaziz Al-Ahmad"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/a_ahmed",
+    "link": "/data/audio/surah_21/reciter_74_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_74_021.mp3"
+  },
+  {
+    "id": 75,
+    "reciter": {
+      "ar": "عبدالعزيز الزهراني",
+      "en": "Abdulaziz Al-Zahrani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/zahrani",
+    "link": "/data/audio/surah_21/reciter_75_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_75_021.mp3"
+  },
+  {
+    "id": 76,
+    "reciter": {
+      "ar": "عبدالله الخلف",
+      "en": "Abdullah Al-Khalaf"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server14.mp3quran.net/khalf",
+    "link": "/data/audio/surah_21/reciter_76_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_76_021.mp3"
+  },
+  {
+    "id": 77,
+    "reciter": {
+      "ar": "عبدالله الكندري",
+      "en": "Abdullah Al-Kandari"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/Abdullahk",
+    "link": "/data/audio/surah_21/reciter_77_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_77_021.mp3"
+  },
+  {
+    "id": 78,
+    "reciter": {
+      "ar": "عبدالله المطرود",
+      "en": "Abdullah Al-Matroud"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/mtrod",
+    "link": "/data/audio/surah_21/reciter_78_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_78_021.mp3"
+  },
+  {
+    "id": 79,
+    "reciter": {
+      "ar": "عبدالله بصفر",
+      "en": "Abdullah Basfar"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/bsfr",
+    "link": "/data/audio/surah_21/reciter_79_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_79_021.mp3"
+  },
+  {
+    "id": 80,
+    "reciter": {
+      "ar": "عبدالله خياط",
+      "en": "Abdullah Khayyat"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/kyat",
+    "link": "/data/audio/surah_21/reciter_80_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_80_021.mp3"
+  },
+  {
+    "id": 81,
+    "reciter": {
+      "ar": "عبدالله عبدل",
+      "en": "Abdullah Abdul"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/a_abdl/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_81_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_81_021.mp3"
+  },
+  {
+    "id": 82,
+    "reciter": {
+      "ar": "عبدالله عواد الجهني",
+      "en": "Abdullah Awad Al-Juhani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server13.mp3quran.net/jhn",
+    "link": "/data/audio/surah_21/reciter_82_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_82_021.mp3"
+  },
+  {
+    "id": 83,
+    "reciter": {
+      "ar": "عبدالله غيلان",
+      "en": "Abdullah Ghailan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/gulan",
+    "link": "/data/audio/surah_21/reciter_83_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_83_021.mp3"
+  },
+  {
+    "id": 84,
+    "reciter": {
+      "ar": "عبدالله كامل",
+      "en": "Abdullah Kamel"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/kamel/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_84_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_84_021.mp3"
+  },
+  {
+    "id": 85,
+    "reciter": {
+      "ar": "عبدالمحسن الحارثي",
+      "en": "Abdul Mohsen Al Harithi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/mohsin_harthi",
+    "link": "/data/audio/surah_21/reciter_85_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_85_021.mp3"
+  },
+  {
+    "id": 86,
+    "reciter": {
+      "ar": "عبدالمحسن العبيكان",
+      "en": "Abdul Mohsen Al-Obaikan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/obk",
+    "link": "/data/audio/surah_21/reciter_86_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_86_021.mp3"
+  },
+  {
+    "id": 87,
+    "reciter": {
+      "ar": "عبدالمحسن القاسم",
+      "en": "Abdul Mohsen Al-Qasim"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/qasm",
+    "link": "/data/audio/surah_21/reciter_87_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_87_021.mp3"
+  },
+  {
+    "id": 88,
+    "reciter": {
+      "ar": "عبدالهادي أحمد كناكري",
+      "en": "Abdul Hadi Ahmed Kanakry"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/kanakeri",
+    "link": "/data/audio/surah_21/reciter_88_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_88_021.mp3"
+  },
+  {
+    "id": 89,
+    "reciter": {
+      "ar": "عبدالودود حنيف",
+      "en": "Abdul Wadud Hanif"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/wdod",
+    "link": "/data/audio/surah_21/reciter_89_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_89_021.mp3"
+  },
+  {
+    "id": 90,
+    "reciter": {
+      "ar": "علي الحذيفي",
+      "en": "Ali Al-Hudhayfi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/hthfi",
+    "link": "/data/audio/surah_21/reciter_90_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_90_021.mp3"
+  },
+  {
+    "id": 91,
+    "reciter": {
+      "ar": "علي الحذيفي",
+      "en": "Ali Al-Hudhayfi"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server9.mp3quran.net/huthifi_qalon",
+    "link": "/data/audio/surah_21/reciter_91_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_91_021.mp3"
+  },
+  {
+    "id": 92,
+    "reciter": {
+      "ar": "علي جابر",
+      "en": "Ali Jaber"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/a_jbr",
+    "link": "/data/audio/surah_21/reciter_92_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_92_021.mp3"
+  },
+  {
+    "id": 93,
+    "reciter": {
+      "ar": "علي حجاج السويسي",
+      "en": "Ali Hajjaj Al-Suwaisi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/hajjaj",
+    "link": "/data/audio/surah_21/reciter_93_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_93_021.mp3"
+  },
+  {
+    "id": 94,
+    "reciter": {
+      "ar": "عماد زهير حافظ",
+      "en": "Imad Zuhair Hafez"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/hafz",
+    "link": "/data/audio/surah_21/reciter_94_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_94_021.mp3"
+  },
+  {
+    "id": 95,
+    "reciter": {
+      "ar": "عمر القزابري",
+      "en": "Omar Al-Qazbari"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server9.mp3quran.net/omar_warsh",
+    "link": "/data/audio/surah_21/reciter_95_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_95_021.mp3"
+  },
+  {
+    "id": 96,
+    "reciter": {
+      "ar": "فؤاد الخامري",
+      "en": "Fouad Al-Khamiri"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/f_khamery/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_96_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_96_021.mp3"
+  },
+  {
+    "id": 97,
+    "reciter": {
+      "ar": "فارس عباد",
+      "en": "Fares Abbad"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/frs_a",
+    "link": "/data/audio/surah_21/reciter_97_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_97_021.mp3"
+  },
+  {
+    "id": 98,
+    "reciter": {
+      "ar": "ماجد الزامل",
+      "en": "Majed Al-Zamil"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/zaml",
+    "link": "/data/audio/surah_21/reciter_98_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_98_021.mp3"
+  },
+  {
+    "id": 99,
+    "reciter": {
+      "ar": "مال الله عبدالرحمن الجابر",
+      "en": "Mal Allah Abdul Rahman Al Jaber"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/mal-allah_jaber/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_99_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_99_021.mp3"
+  },
+  {
+    "id": 100,
+    "reciter": {
+      "ar": "ماهر المعيقلي",
+      "en": "Maher Al-Muaiqly"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/maher/Almusshaf-Al-Mojawwad",
+    "link": "/data/audio/surah_21/reciter_100_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_100_021.mp3"
+  },
+  {
+    "id": 101,
+    "reciter": {
+      "ar": "ماهر المعيقلي",
+      "en": "Maher Al-Muaiqly"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/maher",
+    "link": "/data/audio/surah_21/reciter_101_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_101_021.mp3"
+  },
+  {
+    "id": 102,
+    "reciter": {
+      "ar": "ماهر شخاشيرو",
+      "en": "Maher Shakhashero"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/shaksh",
+    "link": "/data/audio/surah_21/reciter_102_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_102_021.mp3"
+  },
+  {
+    "id": 103,
+    "reciter": {
+      "ar": "محمد أبوسنينة",
+      "en": "Muhammad Abu Sneina"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/sneineh/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_103_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_103_021.mp3"
+  },
+  {
+    "id": 104,
+    "reciter": {
+      "ar": "محمد أيوب",
+      "en": "Muhammad Ayoub"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/ayyub",
+    "link": "/data/audio/surah_21/reciter_104_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_104_021.mp3"
+  },
+  {
+    "id": 105,
+    "reciter": {
+      "ar": "محمد الأمين قنيوة",
+      "en": "Muhammad Al-Amin Qenwa"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/qeniwa/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_105_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_105_021.mp3"
+  },
+  {
+    "id": 106,
+    "reciter": {
+      "ar": "محمد الطبلاوي",
+      "en": "Muhammad Al-Tablawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/tblawi",
+    "link": "/data/audio/surah_21/reciter_106_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_106_021.mp3"
+  },
+  {
+    "id": 107,
+    "reciter": {
+      "ar": "محمد اللحيدان",
+      "en": "Muhammad Al-Luhaidan"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/lhdan",
+    "link": "/data/audio/surah_21/reciter_107_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_107_021.mp3"
+  },
+  {
+    "id": 108,
+    "reciter": {
+      "ar": "محمد جبريل",
+      "en": "Muhammad Jibril"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/jbrl",
+    "link": "/data/audio/surah_21/reciter_108_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_108_021.mp3"
+  },
+  {
+    "id": 109,
+    "reciter": {
+      "ar": "محمد رشاد الشريف",
+      "en": "Muhammad Rashad Al-Sharif"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/rashad",
+    "link": "/data/audio/surah_21/reciter_109_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_109_021.mp3"
+  },
+  {
+    "id": 110,
+    "reciter": {
+      "ar": "محمد سايد",
+      "en": "Mohamed Sayed"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/m_sayed/Rewayat-Warsh-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_110_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_110_021.mp3"
+  },
+  {
+    "id": 111,
+    "reciter": {
+      "ar": "محمد صالح عالم شاه",
+      "en": "Muhammad Saleh Alam Shah"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/shah",
+    "link": "/data/audio/surah_21/reciter_111_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_111_021.mp3"
+  },
+  {
+    "id": 112,
+    "reciter": {
+      "ar": "محمد صديق المنشاوي",
+      "en": "Muhammad Siddiq Al-Minshawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/minsh",
+    "link": "/data/audio/surah_21/reciter_112_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_112_021.mp3"
+  },
+  {
+    "id": 113,
+    "reciter": {
+      "ar": "محمد صديق المنشاوي",
+      "en": "Muhammad Siddiq Al-Minshawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/minsh/Almusshaf-Al-Mojawwad",
+    "link": "/data/audio/surah_21/reciter_113_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_113_021.mp3"
+  },
+  {
+    "id": 114,
+    "reciter": {
+      "ar": "محمد صديق المنشاوي",
+      "en": "Muhammad Siddiq Al-Minshawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server10.mp3quran.net/minsh/Almusshaf-Al-Mo-lim",
+    "link": "/data/audio/surah_21/reciter_114_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_114_021.mp3"
+  },
+  {
+    "id": 115,
+    "reciter": {
+      "ar": "محمد عبدالحكيم العبدالله",
+      "en": "Muhammad Abdul Hakim Al Abdullah"
+    },
+    "rewaya": {
+      "ar": "البزي وقنبل عن ابن كثير",
+      "en": "Al-Bazi and Qunbul on the authority of Ibn Kathir"
+    },
+    "server": "https://server9.mp3quran.net/abdullah",
+    "link": "/data/audio/surah_21/reciter_115_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_115_021.mp3"
+  },
+  {
+    "id": 116,
+    "reciter": {
+      "ar": "محمد عبدالحكيم العبدالله",
+      "en": "Muhammad Abdul Hakim Al Abdullah"
+    },
+    "rewaya": {
+      "ar": "الدوري عن الكسائي",
+      "en": "Al-Douri from Al-Kisa’i"
+    },
+    "server": "https://server9.mp3quran.net/abdullah/Rewayat-AlDorai-A-n-Al-Kisa-ai",
+    "link": "/data/audio/surah_21/reciter_116_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_116_021.mp3"
+  },
+  {
+    "id": 117,
+    "reciter": {
+      "ar": "محمد عبدالكريم",
+      "en": "Muhammad Abdel Karim"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server12.mp3quran.net/m_krm/Rewayat-Warsh-A-n-Nafi-Men-Tariq-Abi-Baker-Alasbahani/",
+    "link": "/data/audio/surah_21/reciter_117_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_117_021.mp3"
+  },
+  {
+    "id": 118,
+    "reciter": {
+      "ar": "محمد عبدالكريم",
+      "en": "Muhammad Abdel Karim"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/m_krm",
+    "link": "/data/audio/surah_21/reciter_118_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_118_021.mp3"
+  },
+  {
+    "id": 119,
+    "reciter": {
+      "ar": "محمد عثمان خان ( من الهند )",
+      "en": "Muhammad Usman Khan (from India)"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/khan",
+    "link": "/data/audio/surah_21/reciter_119_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_119_021.mp3"
+  },
+  {
+    "id": 120,
+    "reciter": {
+      "ar": "محمود الرفاعي",
+      "en": "Mahmoud Al-Rifai"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/mrifai",
+    "link": "/data/audio/surah_21/reciter_120_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_120_021.mp3"
+  },
+  {
+    "id": 121,
+    "reciter": {
+      "ar": "محمود الشيمي",
+      "en": "Mahmoud Al-Shimi"
+    },
+    "rewaya": {
+      "ar": "الدوري عن الكسائي",
+      "en": "Al-Douri from Al-Kisa’i"
+    },
+    "server": "https://server10.mp3quran.net/sheimy",
+    "link": "/data/audio/surah_21/reciter_121_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_121_021.mp3"
+  },
+  {
+    "id": 122,
+    "reciter": {
+      "ar": "محمود خليل الحصري",
+      "en": "Mahmoud Khalil Al-Hosary"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server13.mp3quran.net/husr/Almusshaf-Al-Mojawwad",
+    "link": "/data/audio/surah_21/reciter_122_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_122_021.mp3"
+  },
+  {
+    "id": 123,
+    "reciter": {
+      "ar": "محمود خليل الحصري",
+      "en": "Mahmoud Khalil Al-Hosary"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server13.mp3quran.net/husr/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_123_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_123_021.mp3"
+  },
+  {
+    "id": 124,
+    "reciter": {
+      "ar": "محمود خليل الحصري",
+      "en": "Mahmoud Khalil Al-Hosary"
+    },
+    "rewaya": {
+      "ar": "الدوري عن أبي عمرو",
+      "en": "Al-Duri on the authority of Abu Amr"
+    },
+    "server": "https://server13.mp3quran.net/husr/Rewayat-Aldori-A-n-Abi-Amr",
+    "link": "/data/audio/surah_21/reciter_124_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_124_021.mp3"
+  },
+  {
+    "id": 125,
+    "reciter": {
+      "ar": "محمود خليل الحصري",
+      "en": "Mahmoud Khalil Al-Hosary"
+    },
+    "rewaya": {
+      "ar": "ورش عن نافع",
+      "en": "Warsh on the authority of Nafi’"
+    },
+    "server": "https://server13.mp3quran.net/husr/Rewayat-Warsh-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_125_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_125_021.mp3"
+  },
+  {
+    "id": 126,
+    "reciter": {
+      "ar": "محمود خليل الحصري",
+      "en": "Mahmoud Khalil Al-Hosary"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server13.mp3quran.net/husr",
+    "link": "/data/audio/surah_21/reciter_126_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_126_021.mp3"
+  },
+  {
+    "id": 127,
+    "reciter": {
+      "ar": "محمود عبدالحكم",
+      "en": "Mahmoud Abdel Hakam"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/m_abdelhakam/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_127_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_127_021.mp3"
+  },
+  {
+    "id": 128,
+    "reciter": {
+      "ar": "محمود علي البنا",
+      "en": "Mahmoud Ali Al-Banna"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/bna",
+    "link": "/data/audio/surah_21/reciter_128_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_128_021.mp3"
+  },
+  {
+    "id": 129,
+    "reciter": {
+      "ar": "محمود علي البنا",
+      "en": "Mahmoud Ali Al-Banna"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/bna/Almusshaf-Al-Mojawwad/",
+    "link": "/data/audio/surah_21/reciter_129_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_129_021.mp3"
+  },
+  {
+    "id": 130,
+    "reciter": {
+      "ar": "مروان العكري",
+      "en": "Marwan Al-Ekry"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server16.mp3quran.net/m_akri/Rewayat-Qalon-A-n-Nafi",
+    "link": "/data/audio/surah_21/reciter_130_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_130_021.mp3"
+  },
+  {
+    "id": 131,
+    "reciter": {
+      "ar": "مشاري العفاسي",
+      "en": "Mishary Al-Afasy"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/afs",
+    "link": "/data/audio/surah_21/reciter_131_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_131_021.mp3"
+  },
+  {
+    "id": 132,
+    "reciter": {
+      "ar": "مصطفى إسماعيل",
+      "en": "Mustafa Ismail"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/mustafa/Almusshaf-Al-Mojawwad",
+    "link": "/data/audio/surah_21/reciter_132_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_132_021.mp3"
+  },
+  {
+    "id": 133,
+    "reciter": {
+      "ar": "مصطفى إسماعيل",
+      "en": "Mustafa Ismail"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/mustafa",
+    "link": "/data/audio/surah_21/reciter_133_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_133_021.mp3"
+  },
+  {
+    "id": 134,
+    "reciter": {
+      "ar": "مصطفى اللاهوني",
+      "en": "Mustafa Al-Lahouni"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/lahoni",
+    "link": "/data/audio/surah_21/reciter_134_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_134_021.mp3"
+  },
+  {
+    "id": 135,
+    "reciter": {
+      "ar": "مصطفى رعد العزاوي",
+      "en": "Mustafa Raad Al-Azzawi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/ra3ad",
+    "link": "/data/audio/surah_21/reciter_135_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_135_021.mp3"
+  },
+  {
+    "id": 136,
+    "reciter": {
+      "ar": "معيض الحارثي",
+      "en": "Moeed Al-Harthy"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/harthi",
+    "link": "/data/audio/surah_21/reciter_136_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_136_021.mp3"
+  },
+  {
+    "id": 137,
+    "reciter": {
+      "ar": "مفتاح السلطني",
+      "en": "Saltani Key"
+    },
+    "rewaya": {
+      "ar": "الدوري عن الكسائي",
+      "en": "Al-Douri from Al-Kisa’i"
+    },
+    "server": "https://server14.mp3quran.net/muftah_sultany/Rewayat-AlDorai-A-n-Al-Kisa-ai",
+    "link": "/data/audio/surah_21/reciter_137_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_137_021.mp3"
+  },
+  {
+    "id": 138,
+    "reciter": {
+      "ar": "مفتاح السلطني",
+      "en": "Saltani Key"
+    },
+    "rewaya": {
+      "ar": "ابن ذكوان عن ابن عامر",
+      "en": "Ibn Dhakwan, on the authority of Ibn Amer"
+    },
+    "server": "https://server14.mp3quran.net/muftah_sultany/Rewayat_Ibn-Thakwan-A-n-Ibn-Amer",
+    "link": "/data/audio/surah_21/reciter_138_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_138_021.mp3"
+  },
+  {
+    "id": 139,
+    "reciter": {
+      "ar": "مفتاح السلطني",
+      "en": "Saltani Key"
+    },
+    "rewaya": {
+      "ar": "الدوري عن أبي عمرو",
+      "en": "Al-Duri on the authority of Abu Amr"
+    },
+    "server": "https://server14.mp3quran.net/muftah_sultany/Rewayat-Aldori-A-n-Abi-Amr",
+    "link": "/data/audio/surah_21/reciter_139_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_139_021.mp3"
+  },
+  {
+    "id": 140,
+    "reciter": {
+      "ar": "مفتاح السلطني",
+      "en": "Saltani Key"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server14.mp3quran.net/muftah_sultany/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_140_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_140_021.mp3"
+  },
+  {
+    "id": 141,
+    "reciter": {
+      "ar": "موسى بلال",
+      "en": "Musa Bilal"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/bilal",
+    "link": "/data/audio/surah_21/reciter_141_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_141_021.mp3"
+  },
+  {
+    "id": 142,
+    "reciter": {
+      "ar": "ناصر القطامي",
+      "en": "Nasser Al-Qatami"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/qtm",
+    "link": "/data/audio/surah_21/reciter_142_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_142_021.mp3"
+  },
+  {
+    "id": 143,
+    "reciter": {
+      "ar": "ناصر الماجد",
+      "en": "Nasser Al Majid"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server14.mp3quran.net/nasser_almajed",
+    "link": "/data/audio/surah_21/reciter_143_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_143_021.mp3"
+  },
+  {
+    "id": 144,
+    "reciter": {
+      "ar": "نبيل الرفاعي",
+      "en": "Nabil Al-Rifai"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/nabil",
+    "link": "/data/audio/surah_21/reciter_144_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_144_021.mp3"
+  },
+  {
+    "id": 145,
+    "reciter": {
+      "ar": "نذير المالكي",
+      "en": "Nazir Al-Maliki"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/nathier/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_145_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_145_021.mp3"
+  },
+  {
+    "id": 146,
+    "reciter": {
+      "ar": "نعمة الحسان",
+      "en": "The blessing of kindness"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/namh",
+    "link": "/data/audio/surah_21/reciter_146_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_146_021.mp3"
+  },
+  {
+    "id": 147,
+    "reciter": {
+      "ar": "نورين محمد صديق",
+      "en": "Noreen Muhammad Siddiq"
+    },
+    "rewaya": {
+      "ar": "الدوري عن أبي عمرو",
+      "en": "Al-Duri on the authority of Abu Amr"
+    },
+    "server": "https://server16.mp3quran.net/nourin_siddig/Rewayat-Aldori-A-n-Abi-Amr",
+    "link": "/data/audio/surah_21/reciter_147_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_147_021.mp3"
+  },
+  {
+    "id": 148,
+    "reciter": {
+      "ar": "هاشم أبو دلال",
+      "en": "Hashem Abu Dalal"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server16.mp3quran.net/h_abudalal/Rewayat-Hafs-A-n-Assem",
+    "link": "/data/audio/surah_21/reciter_148_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_148_021.mp3"
+  },
+  {
+    "id": 149,
+    "reciter": {
+      "ar": "هاني الرفاعي",
+      "en": "Hani Al-Rifai"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/hani",
+    "link": "/data/audio/surah_21/reciter_149_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_149_021.mp3"
+  },
+  {
+    "id": 150,
+    "reciter": {
+      "ar": "وديع اليمني",
+      "en": "Wadih Al-Yamani"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server6.mp3quran.net/wdee3",
+    "link": "/data/audio/surah_21/reciter_150_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_150_021.mp3"
+  },
+  {
+    "id": 151,
+    "reciter": {
+      "ar": "وليد النائحي",
+      "en": "Walid Al-Nahi"
+    },
+    "rewaya": {
+      "ar": "قالون عن نافع",
+      "en": "They said about Nafi’"
+    },
+    "server": "https://server9.mp3quran.net/waleed",
+    "link": "/data/audio/surah_21/reciter_151_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_151_021.mp3"
+  },
+  {
+    "id": 152,
+    "reciter": {
+      "ar": "ياسر الدوسري",
+      "en": "Yasser Al-Dosari"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server11.mp3quran.net/yasser",
+    "link": "/data/audio/surah_21/reciter_152_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_152_021.mp3"
+  },
+  {
+    "id": 153,
+    "reciter": {
+      "ar": "ياسر القرشي",
+      "en": "Yasser Al Qurashi"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/qurashi",
+    "link": "/data/audio/surah_21/reciter_153_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_153_021.mp3"
+  },
+  {
+    "id": 154,
+    "reciter": {
+      "ar": "ياسر المزروعي ",
+      "en": "Yasser Al Mazroui"
+    },
+    "rewaya": {
+      "ar": "روايتي رويس وروح",
+      "en": "My novel Royce and Soul"
+    },
+    "server": "https://server9.mp3quran.net/mzroyee",
+    "link": "/data/audio/surah_21/reciter_154_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_154_021.mp3"
+  },
+  {
+    "id": 155,
+    "reciter": {
+      "ar": "ياسر سلامة",
+      "en": "Yasser Salama"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/salamah/Rewayat-Hafs-A-n-Assem/",
+    "link": "/data/audio/surah_21/reciter_155_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_155_021.mp3"
+  },
+  {
+    "id": 156,
+    "reciter": {
+      "ar": "يحيى حوا",
+      "en": "Yahya Hawa"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server12.mp3quran.net/yahya",
+    "link": "/data/audio/surah_21/reciter_156_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_156_021.mp3"
+  },
+  {
+    "id": 157,
+    "reciter": {
+      "ar": "يوسف الشويعي",
+      "en": "Youssef Al-Shuwaii"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server9.mp3quran.net/yousef",
+    "link": "/data/audio/surah_21/reciter_157_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_157_021.mp3"
+  },
+  {
+    "id": 158,
+    "reciter": {
+      "ar": "يوسف بن نوح أحمد",
+      "en": "Youssef bin Noah Ahmed"
+    },
+    "rewaya": {
+      "ar": "حفص عن عاصم",
+      "en": "Hafs on the authority of Asim"
+    },
+    "server": "https://server8.mp3quran.net/noah",
+    "link": "/data/audio/surah_21/reciter_158_021.mp3",
+    "originalLink": "/data/audio/surah_21/reciter_158_021.mp3"
+  }
+]

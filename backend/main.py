@@ -19,6 +19,7 @@ from backend.routers.network import router as network_router
 from backend.routers.notifications import router as notifications_router
 from backend.routers.default_services import router as default_services_router
 from backend.routers.system import router as system_router
+from backend.routers.quran_settings import router as quran_settings_router
 
 
 def _system_beep():
@@ -314,6 +315,7 @@ app.include_router(network_router)
 app.include_router(notifications_router)
 app.include_router(default_services_router)
 app.include_router(system_router)
+app.include_router(quran_settings_router)
 
 # مجلد البناء للواجهة (طور الإنتاج)
 FRONTEND_BUILD = Path(__file__).resolve().parent.parent / "frontend" / "build"

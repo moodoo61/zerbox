@@ -1,5 +1,4 @@
 """نظام التحديث التلقائي — فحص إصدارات GitHub وتنفيذ التحديث."""
-import os
 import re
 import threading
 import subprocess
@@ -173,13 +172,6 @@ def _do_update(target_version: str):
             _set_state("error", 60, f"فشل في بناء الواجهة: {out}", error=out)
             log_event(f"فشل تحديث النظام (npm build): {out}", "error", "updater")
             return
-
-        quran_dir = str(PROJECT_ROOT / "quran")
-        if os.path.isdir(quran_dir) and os.path.isfile(os.path.join(quran_dir, "package.json")):
-            _set_state("updating", 75, "جاري بناء تطبيق القرآن الكريم...", "quran_build")
-            ok, out = _run_cmd(["npm", "install"], cwd=quran_dir, timeout=180)
-            if ok:
-                _run_cmd(["npm", "run", "build"], cwd=quran_dir, timeout=180)
 
         _set_state("updating", 90, "جاري إعادة تشغيل النظام...", "restart")
 

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>القرآن الكريم - Quran Data</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo">📖 القرآن الكريم</h1>
+                <nav class="nav">
+                    <button class="nav-btn active" data-view="surahs">السور</button>
+                    <button class="nav-btn" data-view="pages">الصفحات</button>
+                    <div class="nav-with-search">
+                        <div class="search-container-small">
+                            <input type="text" id="searchInput" class="search-input-small" placeholder="ابحث...">
+                            <button class="search-btn-small">🔍</button>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>جاري التحميل...</p>
+            </div>
+
+            <!-- Surahs View -->
+            <div id="surahsView" class="view active">
+                <div class="view-header-top-bar">
+                    <!-- Prayer Times -->
+                    <div class="prayer-times-section">
+                        <div class="prayer-times-header">
+                            <span class="prayer-times-title-small">مواقيت الصلاة ، اليمن</span>
+                            <span class="prayer-times-date-info" id="prayerDateInfo"></span>
+                        </div>
+                        <div id="prayerTimes" class="prayer-times-inline">
+                            <span class="prayer-times-label">⏰</span>
+                            <span class="prayer-time-item-inline"><span class="prayer-name-inline">الفجر</span><span class="prayer-time" id="fajr">--:--</span></span>
+                            <span class="prayer-time-item-inline"><span class="prayer-name-inline">الظهر</span><span class="prayer-time" id="dhuhr">--:--</span></span>
+                            <span class="prayer-time-item-inline"><span class="prayer-name-inline">العصر</span><span class="prayer-time" id="asr">--:--</span></span>
+                            <span class="prayer-time-item-inline"><span class="prayer-name-inline">المغرب</span><span class="prayer-time" id="maghrib">--:--</span></span>
+                            <span class="prayer-time-item-inline"><span class="prayer-name-inline">العشاء</span><span class="prayer-time" id="isha">--:--</span></span>
+                        </div>
+                    </div>
+                    <select id="sortSelect" class="select">
+                        <option value="number">ترتيب رقمي</option>
+                        <option value="name">ترتيب أبجدي</option>
+                        <option value="verses">عدد الآيات</option>
+                    </select>
+                </div>
+                <div id="surahsGrid" class="surahs-grid"></div>
+            </div>
+
+            <!-- Surah Detail View -->
+            <div id="surahView" class="view" style="display: none;">
+                <div class="surah-header">
+                    <div class="surah-header-top">
+                        <button class="back-btn" onclick="showSurahsView()">← رجوع</button>
+                        <h2 id="surahName" class="surah-title"></h2>
+                    </div>
+                    <div class="surah-header-bottom">
+                        <div class="surah-meta">
+                            <span id="surahRevelation"></span>
+                            <span id="surahVersesCount"></span>
+                            <span id="surahWordsCount"></span>
+                            <span id="surahLettersCount"></span>
+                            <span id="surahJuzInfo" class="surah-juz-badge"></span>
+                        </div>
+                        <div class="audio-controls" id="audioControls"></div>
+                    </div>
+                </div>
+                <div id="versesContainer" class="verses-container"></div>
+                <div class="surah-pagination" id="surahPagination"></div>
+            </div>
+
+            <!-- Pages View -->
+            <div id="pagesView" class="view" style="display: none;">
+                <div class="view-header">
+                    <h2>صفحات القرآن الكريم</h2>
+                    <div class="page-navigation">
+                        <button class="page-nav-btn" id="prevPageBtn">← السابقة</button>
+                        <input type="number" id="pageNumberInput" class="page-input" min="1" max="604" value="1">
+                        <span>/ 604</span>
+                        <button class="page-nav-btn" id="nextPageBtn">التالية →</button>
+                    </div>
+                </div>
+                <div id="pageContainer" class="page-container"></div>
+            </div>
+
+            <!-- Sajda View -->
+            <div id="sajdaView" class="view" style="display: none;">
+                <div class="view-header">
+                    <h2>آيات السجدة</h2>
+                </div>
+                <div id="sajdaContainer" class="sajda-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Audio Player -->
+    <div id="audioPlayer" class="audio-player" style="display: none;">
+        <div class="audio-player-content">
+            <div class="audio-info">
+                <span id="audioSurahName"></span>
+                <span id="audioReciter"></span>
+            </div>
+            <div class="audio-controls-bar">
+                <button class="audio-btn audio-btn-primary" id="playPauseBtn" title="تشغيل / إيقاف">
+                    <span class="audio-icon-play">▶</span>
+                    <span class="audio-icon-pause" style="display: none;">⏸</span>
+                </button>
+                <input type="range" id="audioProgress" class="audio-progress" min="0" max="100" value="0">
+                <span id="audioTime" class="audio-time">00:00 / 00:00</span>
+                <button class="audio-btn audio-btn-secondary" id="downloadBtn" title="تنزيل المقطع الصوتي">
+                    <span class="download-icon">⬇</span>
+                </button>
+                <button class="audio-btn audio-btn-secondary" id="stopBtn" title="إيقاف">
+                    <span class="stop-icon">⏹</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

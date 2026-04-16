@@ -28,6 +28,10 @@ frontend/.env.production.local
 # القرآن وقافية — لا يُرفع محتواهما إلى GitHub (يُستنسخان محلياً أو عبر سكربت النشر)
 /qafiyah/
 
+# القرآن الكريم (لا نرفع الصوت/الملفات الضخمة)
+/quran/data/audio/
+quran.zip
+
 # Misc
 .DS_Store
 *.tar.gz
