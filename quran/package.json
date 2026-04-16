@@ -8,6 +8,8 @@
   },
   "scripts": {
     "start": "node server/server.mjs",
+    "serve": "node server/server.mjs",
+    "build": "node -e \"console.log('Quran Node project: no build step required')\"",
     "launch": "node launch.js",
     "dev": "nodemon",
     "splitData": "node scripts/splitData.js",
