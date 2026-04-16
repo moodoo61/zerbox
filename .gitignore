@@ -30,6 +30,7 @@ frontend/.env.production.local
 
 # القرآن الكريم (لا نرفع الصوت/الملفات الضخمة)
 /quran/data/audio/
+/root/Zero/quran/data/audio
 quran.zip
 
 # Misc
