@@ -132,6 +132,8 @@ class StreamingSubscriptionUpdate(SQLModel):
 class ChannelBase(SQLModel):
     name: str
     url: str
+    # توافق مع قواعد SQLite القديمة (عمود NOT NULL). لم يعد يُستخدم وظيفياً.
+    raw: str = ""
     category: Optional[str] = None
     logo_url: Optional[str] = None
     is_active: bool = True
@@ -161,6 +163,7 @@ class ChannelCreate(ChannelBase):
 class ChannelUpdate(SQLModel):
     name: Optional[str] = None
     url: Optional[str] = None
+    raw: Optional[str] = None
     category: Optional[str] = None
     logo_url: Optional[str] = None
     is_active: Optional[bool] = None

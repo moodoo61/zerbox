@@ -139,6 +139,12 @@ def create_db_and_tables():
                 if col_name not in cols:
                     conn.execute(text(f"ALTER TABLE channel ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"))
                     conn.commit()
+            if "raw" not in cols:
+                conn.execute(text("ALTER TABLE channel ADD COLUMN raw VARCHAR DEFAULT ''"))
+                conn.commit()
+            else:
+                conn.execute(text("UPDATE channel SET raw = '' WHERE raw IS NULL"))
+                conn.commit()
     except Exception:
         pass
 
