@@ -44,16 +44,12 @@ npm run build
 cd "$ZERO_ROOT"
 echo "  ✅ الواجهة الأمامية جاهزة"
 
-# 3) القرآن الكريم (Vue 2)
+# 3) القرآن الكريم (Node/Express)
 echo ""
 if [ -f "$ZERO_ROOT/quran/package.json" ]; then
-  echo "[3/4] تثبيت تطبيق القرآن الكريم (Vue)..."
+  echo "[3/4] تثبيت تطبيق القرآن الكريم (Node)..."
   cd "$ZERO_ROOT/quran"
   npm install
-  if [ ! -d "dist" ]; then
-    echo "      بناء تطبيق القرآن..."
-    npm run build 2>/dev/null || echo "      ⚠️ بناء القرآن اختياري — سيعمل عبر serve"
-  fi
   cd "$ZERO_ROOT"
   echo "  ✅ القرآن الكريم جاهز"
 else

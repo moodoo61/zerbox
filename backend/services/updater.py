@@ -128,6 +128,52 @@ def _run_cmd(cmd: list, cwd: str = None, timeout: int = 300) -> tuple:
         return False, str(e)
 
 
+def _run_systemctl(cmd: list, timeout: int = 90) -> tuple:
+    """
+    تشغيل أوامر systemctl بطريقة متوافقة:
+    - مباشرة (عند عمل الخدمة بصلاحية root)
+    - مع sudo كخيار احتياطي.
+    """
+    ok, out = _run_cmd(["systemctl"] + cmd, timeout=timeout)
+    if ok:
+        return True, out
+    ok2, out2 = _run_cmd(["sudo", "systemctl"] + cmd, timeout=timeout)
+    return ok2, (out + "\n" + out2).strip()
+
+
+def _sync_quran_service_unit() -> tuple:
+    """
+    مزامنة zero-quran.service تلقائياً بعد التحديث:
+    - نسخ ملف الخدمة من deploy مع استبدال /root/Zero بالمسار الفعلي.
+    - daemon-reload + enable + restart.
+    """
+    src = PROJECT_ROOT / "deploy" / "zero-quran.service"
+    dst = Path("/etc/systemd/system/zero-quran.service")
+
+    if not src.exists():
+        return False, f"ملف الخدمة غير موجود: {src}"
+
+    try:
+        raw = src.read_text(encoding="utf-8")
+        rendered = raw.replace("/root/Zero", str(PROJECT_ROOT))
+        current = dst.read_text(encoding="utf-8") if dst.exists() else None
+        if current != rendered:
+            dst.write_text(rendered, encoding="utf-8")
+    except Exception as e:
+        return False, f"فشل تحديث ملف الخدمة: {e}"
+
+    ok_reload, out_reload = _run_systemctl(["daemon-reload"], timeout=60)
+    if not ok_reload:
+        return False, f"فشل daemon-reload: {out_reload}"
+
+    # لا نجعل enable/ restart قاتلة للتحديث الرئيسي؛ تعاد كخطأ يمكن التعامل معه.
+    ok_enable, out_enable = _run_systemctl(["enable", "zero-quran"], timeout=60)
+    ok_restart, out_restart = _run_systemctl(["restart", "zero-quran"], timeout=90)
+    if not ok_enable or not ok_restart:
+        return False, f"enable={ok_enable}, restart={ok_restart}\n{out_enable}\n{out_restart}"
+    return True, "تمت مزامنة وتشغيل خدمة القرآن"
+
+
 def _do_update(target_version: str):
     """تنفيذ عملية التحديث في خيط خلفي."""
     try:
@@ -172,6 +218,30 @@ def _do_update(target_version: str):
             _set_state("error", 60, f"فشل في بناء الواجهة: {out}", error=out)
             log_event(f"فشل تحديث النظام (npm build): {out}", "error", "updater")
             return
+
+        quran_dir = str(PROJECT_ROOT / "quran")
+        if Path(quran_dir, "package.json").exists():
+            _set_state("updating", 72, "جاري تجهيز تطبيق القرآن الكريم...", "quran_prepare")
+            ok, out = _run_cmd(["npm", "install"], cwd=quran_dir, timeout=240)
+            if not ok:
+                _set_state(
+                    "updating",
+                    75,
+                    "تحذير: تعذر تجهيز مكتبات القرآن الكريم تلقائياً",
+                    "quran_warning",
+                )
+                log_event(f"تحذير تجهيز القرآن (npm install): {out}", "warning", "updater")
+            else:
+                _set_state("updating", 78, "جاري تحديث خدمة القرآن الكريم...", "quran_service")
+                ok_sync, out_sync = _sync_quran_service_unit()
+                if not ok_sync:
+                    _set_state(
+                        "updating",
+                        80,
+                        "تحذير: تعذر إعادة تهيئة خدمة القرآن تلقائياً",
+                        "quran_service_warning",
+                    )
+                    log_event(f"تحذير مزامنة خدمة القرآن: {out_sync}", "warning", "updater")
 
         _set_state("updating", 90, "جاري إعادة تشغيل النظام...", "restart")
 
