@@ -8,7 +8,8 @@ Type=simple
 # استبدل /root/Zero بمسار مشروعك إن لزم (مثل deploy/install-services.sh)
 WorkingDirectory=/root/Zero/quran
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/root/.nvm/versions/node/v22.16.0/bin/node /root/Zero/quran/server/server.mjs
+Environment=PORT=8081
+ExecStart=/root/Zero/deploy/quran-systemd-start.sh
 Restart=on-failure
 RestartSec=3
 User=root

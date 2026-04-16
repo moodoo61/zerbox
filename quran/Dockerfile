@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # فتح المنفذ
-EXPOSE 5000
+EXPOSE 8081
 
 # تشغيل تطبيق الويب
 CMD [ "npm", "start" ]

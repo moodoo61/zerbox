@@ -131,7 +131,7 @@ fi
 
 # --- تثبيت ملفات الخدمة ---
 echo ""
-chmod +x "$ZERO_ROOT/deploy/qafiyah-systemd-start.sh" 2>/dev/null || true
+chmod +x "$ZERO_ROOT/deploy/qafiyah-systemd-start.sh" "$ZERO_ROOT/deploy/quran-systemd-start.sh" 2>/dev/null || true
 for name in zero zero-network-helper zero-quran zero-qafiyah; do
   src="$ZERO_ROOT/deploy/${name}.service"
   if [ ! -f "$src" ]; then

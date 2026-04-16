@@ -9,7 +9,7 @@ import http from 'http';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SERVER_URL = 'http://localhost:5000';
+const SERVER_URL = 'http://localhost:8081';
 const MAX_RETRIES = 30;
 const RETRY_DELAY = 1000;
 
