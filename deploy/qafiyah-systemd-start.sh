@@ -40,11 +40,16 @@ if [ ! -f "$WEB_DIR/package.json" ]; then
   exit 1
 fi
 
-# مع pnpm غالباً لا يوجد next في جذر qafiyah/node_modules/.bin؛ يبقى داخل apps/web أو عبر pnpm store.
-# لا نستخدم \"pnpm run dev\" (يمرّ -- -p إلى next بشكل خاطئ مع Next 16).
+# تشغيل الواجهة فقط وبأقل إعدادات (بدون قواعد محلية):
+# نشغّل Next.js مباشرة باستخدام API العام. هذا يتجنب build طويل جداً (static export) وقد يعلق بسبب generateStaticParams الضخم.
+# ملاحظة: هذا "dev server" لكنه أخف بكثير من تشغيل المونوربو (turbo+wrangler+postgres).
+
+PORT="${PORT:-8082}"
+HOST="${HOST:-0.0.0.0}"
 
 if command -v pnpm >/dev/null 2>&1; then
-  exec pnpm --dir apps/web exec next dev -p 8082 -H 0.0.0.0
+  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://api.qafiyah.com}"
+  exec pnpm --dir apps/web exec next dev -p "$PORT" -H "$HOST"
 fi
 
 WEB_NEXT="$WEB_DIR/node_modules/.bin/next"

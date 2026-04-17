@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 
 const STEP_LABELS = {
-    git_fetch: 'جلب التحديثات من المستودع',
+    git_fetch: 'جلب التحديثات ',
     git_pull: 'تنزيل الملفات الجديدة',
     pip_install: 'تثبيت مكتبات Python',
     pip_warning: 'تحذير مكتبات Python',
