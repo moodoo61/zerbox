@@ -131,6 +131,8 @@ fi
 
 # --- تثبيت ملفات الخدمة ---
 echo ""
+# systemd يحتاج سكربتات ExecStart قابلة للتنفيذ. يجب أن تُحفَظ في Git بصيغة 100755 (مثل qafiyah)
+# حتى لا يحوّل chmod هنا الملف إلى «معدّل محلياً» فيُفشل git pull من الواجهة (updater.py).
 chmod +x "$ZERO_ROOT/deploy/qafiyah-systemd-start.sh" "$ZERO_ROOT/deploy/quran-systemd-start.sh" 2>/dev/null || true
 for name in zero zero-network-helper zero-quran zero-qafiyah mistserver; do
   src="$ZERO_ROOT/deploy/${name}.service"
