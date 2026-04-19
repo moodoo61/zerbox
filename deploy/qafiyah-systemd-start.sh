@@ -40,28 +40,25 @@ if [ ! -f "$WEB_DIR/package.json" ]; then
   exit 1
 fi
 
-# تشغيل الواجهة فقط وبأقل إعدادات (بدون قواعد محلية):
-# نشغّل Next.js مباشرة باستخدام API العام. هذا يتجنب build طويل جداً (static export) وقد يعلق بسبب generateStaticParams الضخم.
-# ملاحظة: هذا "dev server" لكنه أخف بكثير من تشغيل المونوربو (turbo+wrangler+postgres).
+# تشغيل منخفض الموارد (بدون قواعد محلية):
+# Production server عبر next start + API العام.
+# هذا أقل استهلاكاً بشكل واضح من next dev.
 
 PORT="${PORT:-8082}"
 HOST="${HOST:-0.0.0.0}"
+export NODE_ENV=production
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://api.qafiyah.com}"
 
-if command -v pnpm >/dev/null 2>&1; then
-  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://api.qafiyah.com}"
-  exec pnpm --dir apps/web exec next dev -p "$PORT" -H "$HOST"
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "qafiyah-systemd-start: لم يُعثر على pnpm. من $QAF_DIR نفّذ: pnpm install" >&2
+  exit 1
 fi
 
-WEB_NEXT="$WEB_DIR/node_modules/.bin/next"
-if [ -x "$WEB_NEXT" ]; then
-  cd "$WEB_DIR"
-  exec ./node_modules/.bin/next dev -p 8082 -H 0.0.0.0
+# نحتاج build إنتاجي مسبق قبل next start.
+if [ ! -f "$WEB_DIR/.next/BUILD_ID" ]; then
+  echo "qafiyah-systemd-start: لا يوجد build إنتاجي جاهز. نفّذ مرة واحدة:" >&2
+  echo "  cd $QAF_DIR && pnpm --dir apps/web run build:server:public-api" >&2
+  exit 1
 fi
 
-ROOT_NEXT="$QAF_DIR/node_modules/.bin/next"
-if [ -x "$ROOT_NEXT" ]; then
-  exec "$ROOT_NEXT" dev ./apps/web -p 8082 -H 0.0.0.0
-fi
-
-echo "qafiyah-systemd-start: لم يُعثر على next (pnpm أو apps/web/node_modules). من $QAF_DIR نفّذ: pnpm install" >&2
-exit 1
+exec pnpm --dir apps/web exec next start -p "$PORT" -H "$HOST"
