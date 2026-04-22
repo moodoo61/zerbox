@@ -106,6 +106,9 @@ def create_db_and_tables():
             if "page_logo_url" not in cols:
                 conn.execute(text("ALTER TABLE viewerpagesettings ADD COLUMN page_logo_url VARCHAR DEFAULT ''"))
                 conn.commit()
+            if "hidden_channels" not in cols:
+                conn.execute(text("ALTER TABLE viewerpagesettings ADD COLUMN hidden_channels VARCHAR DEFAULT '[]'"))
+                conn.commit()
     except Exception:
         pass
 
@@ -228,7 +231,8 @@ def get_or_create_viewer_page_settings(session: Session) -> ViewerPageSettings:
             # إعدادات التحكم في البافر
             buffer_size=30,
             max_buffer_length=60,
-            live_back_buffer_length=30
+            live_back_buffer_length=30,
+            hidden_channels="[]",
         )
         session.add(settings)
         session.commit()

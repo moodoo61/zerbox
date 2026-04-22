@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box, Typography, Switch, FormControlLabel, TextField, Button,
     Grid, Card, CardContent, Alert, CircularProgress, Chip,
@@ -8,6 +8,7 @@ import {
 import {
     Save as SaveIcon,
     Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
     LiveTv as LiveTvIcon,
     Launch as LaunchIcon,
     Refresh as RefreshIcon,
@@ -36,7 +37,8 @@ const ViewerPageManager = ({ auth }) => {
         buffer_size: 30,
         max_buffer_length: 60,
         live_back_buffer_length: 30,
-        show_matches_table: false
+        show_matches_table: false,
+        hidden_channels: '[]'
     });
 
     const [channels, setChannels] = useState([]);
@@ -45,6 +47,17 @@ const ViewerPageManager = ({ auth }) => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+
+    const getChannelKey = useCallback((channel) => channel.stream_key || channel.name, []);
+    const hiddenChannelKeys = useMemo(() => {
+        try {
+            const parsed = JSON.parse(settings.hidden_channels || '[]');
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map((item) => String(item)).filter(Boolean);
+        } catch {
+            return [];
+        }
+    }, [settings.hidden_channels]);
 
     const fetchSettings = useCallback(async () => {
         try {
@@ -171,6 +184,19 @@ const ViewerPageManager = ({ auth }) => {
         Promise.all([fetchSettings(), fetchChannels()]).finally(() => setLoading(false));
     };
 
+    const handleToggleChannelVisibility = (channel, hidden) => {
+        const key = getChannelKey(channel);
+        const hiddenSet = new Set(hiddenChannelKeys);
+        if (hidden) hiddenSet.add(key);
+        else hiddenSet.delete(key);
+        const nextHidden = Array.from(hiddenSet);
+        setSettings((prev) => ({
+            ...prev,
+            hidden_channels: JSON.stringify(nextHidden),
+            default_channel: nextHidden.includes(prev.default_channel) ? '' : prev.default_channel
+        }));
+    };
+
     const getViewerPageUrl = () => `${window.location.origin}/mubasher`;
     const openViewerPage = () => window.open(getViewerPageUrl(), '_blank');
 
@@ -289,7 +315,9 @@ const ViewerPageManager = ({ auth }) => {
                                     label="القناة الافتراضية"
                                 >
                                     <MenuItem value=""><em>بدون قناة افتراضية</em></MenuItem>
-                                    {channels.map((ch) => (
+                                    {channels
+                                        .filter((ch) => !hiddenChannelKeys.includes(getChannelKey(ch)))
+                                        .map((ch) => (
                                         <MenuItem key={ch.id} value={ch.name}>{ch.name}</MenuItem>
                                     ))}
                                 </Select>
@@ -485,6 +513,20 @@ const ViewerPageManager = ({ auth }) => {
                                                     fontWeight: 700,
                                                 } : {}}
                                             />
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        size="small"
+                                                        checked={!hiddenChannelKeys.includes(sk)}
+                                                        onChange={(e) => handleToggleChannelVisibility(ch, !e.target.checked)}
+                                                    />
+                                                }
+                                                label={!hiddenChannelKeys.includes(sk) ? 'ظاهر' : 'مخفي'}
+                                                sx={{ mr: 0, ml: 0.5 }}
+                                            />
+                                            {hiddenChannelKeys.includes(sk) && (
+                                                <VisibilityOffIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
+                                            )}
                                         </Box>
                                     </ListItem>
                                 );

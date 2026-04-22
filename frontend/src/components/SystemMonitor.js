@@ -83,6 +83,20 @@ const LOG_LEVEL_CONFIG = {
     error:   { color: '#c62828', bg: '#ffebee', label: 'خطأ' },
 };
 
+const LOG_SOURCE_LABELS = {
+    system: 'النظام',
+    streaming: 'البث',
+    updater: 'التحديث',
+    mistserver: 'خادم المشاهدة',
+};
+
+function getLogSourceLabel(source) {
+    if (!source) return 'النظام';
+    const normalized = String(source).toLowerCase();
+    if (normalized.includes('mistserver')) return 'خادم المشاهدة';
+    return LOG_SOURCE_LABELS[normalized] || source;
+}
+
 const SystemMonitor = ({ auth, userInfo }) => {
     const [stats, setStats] = useState(null);
     const [error, setError] = useState('');
@@ -871,7 +885,7 @@ const SystemMonitor = ({ auth, userInfo }) => {
                                                 {entry.message}
                                             </Typography>
                                             <Chip 
-                                                label={entry.source} 
+                                                label={getLogSourceLabel(entry.source)} 
                                                 size="small" 
                                                 variant="outlined"
                                                 sx={{ height: 18, fontSize: 10, opacity: 0.7 }} 

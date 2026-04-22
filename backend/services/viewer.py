@@ -1,7 +1,20 @@
 """إعدادات صفحة المشاهدة (Viewer Page)."""
+import json
 from sqlmodel import Session, select
 from .. import models
 from .streaming import get_streaming_channels, get_or_create_streaming_subscription
+
+
+def _parse_hidden_channels(raw_value: str) -> set[str]:
+    if not raw_value:
+        return set()
+    try:
+        parsed = json.loads(raw_value)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return set()
+    if not isinstance(parsed, list):
+        return set()
+    return {str(item).strip() for item in parsed if str(item).strip()}
 
 
 def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings:
@@ -15,6 +28,7 @@ def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings
                 default_channel=None, auto_play=False, show_controls=True,
                 streaming_format="hls", player_type="hls.js",
                 buffer_size=30, max_buffer_length=60, live_back_buffer_length=30,
+                hidden_channels="[]",
             )
             db.add(settings)
             db.commit()
@@ -32,6 +46,7 @@ def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings
             default_channel=None, auto_play=False, show_controls=True,
             streaming_format="hls", player_type="hls.js",
             buffer_size=30, max_buffer_length=60, live_back_buffer_length=30,
+            hidden_channels="[]",
         )
         db.add(settings)
         db.commit()
@@ -69,7 +84,15 @@ def get_viewer_page_data(db: Session) -> dict:
     if not subscription.is_active:
         return {"status": "disabled", "message": "خدمة البث غير مفعلة"}
     channels = get_streaming_channels(db)
+    hidden_channels = _parse_hidden_channels(getattr(settings, "hidden_channels", "[]"))
+    if hidden_channels:
+        channels = [
+            channel for channel in channels
+            if (channel.stream_key or channel.name) not in hidden_channels
+        ]
     if settings.default_channel:
+        if settings.default_channel in hidden_channels:
+            settings.default_channel = None
         sorted_channels = []
         for channel in channels:
             if channel.name == settings.default_channel:

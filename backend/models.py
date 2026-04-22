@@ -210,6 +210,7 @@ class ViewerPageSettingsBase(SQLModel):
     
     # إعدادات جدول المباريات
     show_matches_table: bool = False  # تفعيل/تعطيل جدول مباريات اليوم
+    hidden_channels: str = "[]"  # JSON array of stream_key/name values hidden from viewer page
 
 
 class ViewerPageSettings(ViewerPageSettingsBase, table=True):
@@ -250,6 +251,7 @@ class ViewerPageSettingsUpdate(SQLModel):
     
     # إعدادات جدول المباريات
     show_matches_table: Optional[bool] = None
+    hidden_channels: Optional[str] = None
 
 
 # ---- Admin User (لوحة التحكم) ----

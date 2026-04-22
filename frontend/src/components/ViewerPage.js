@@ -74,10 +74,38 @@ const ViewerPage = () => {
     }, [activatingStreamKey, channelStats]);
 
     /* ── Derived data ── */
+    const hiddenChannelKeys = useMemo(() => {
+        try {
+            const raw = pageData?.settings?.hidden_channels || '[]';
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map((item) => String(item)).filter(Boolean);
+        } catch {
+            return [];
+        }
+    }, [pageData?.settings?.hidden_channels]);
+
     const filteredChannels = useMemo(() => {
         if (!pageData?.channels) return [];
-        return pageData.channels;
-    }, [pageData]);
+        return pageData.channels.filter((channel) => {
+            const key = channel.stream_key || channel.name;
+            return !hiddenChannelKeys.includes(key);
+        });
+    }, [pageData, hiddenChannelKeys]);
+
+    useEffect(() => {
+        if (!filteredChannels.length) {
+            setSelectedChannel(null);
+            return;
+        }
+        if (selectedChannel && filteredChannels.some((ch) => ch.id === selectedChannel.id)) {
+            return;
+        }
+        const defaultByName = pageData?.settings?.default_channel
+            ? filteredChannels.find((ch) => ch.name === pageData.settings.default_channel)
+            : null;
+        setSelectedChannel(defaultByName || filteredChannels[0]);
+    }, [filteredChannels, pageData?.settings?.default_channel, selectedChannel]);
 
     /* ── Handlers ── */
     const handleChannelSelect = (channel) => {
@@ -164,7 +192,7 @@ const ViewerPage = () => {
         );
     }
 
-    const { settings, channels } = pageData;
+    const { settings } = pageData;
 
     /* ================================================================
        MAIN RENDER
@@ -345,7 +373,7 @@ const ViewerPage = () => {
                 <MatchesTable
                     open={matchesOpen}
                     onClose={() => setMatchesOpen(false)}
-                    channels={channels}
+                    channels={filteredChannels}
                     onChannelSelect={(ch) => { handleChannelSelect(ch); setMatchesOpen(false); }}
                 />
             )}

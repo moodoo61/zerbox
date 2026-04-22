@@ -362,13 +362,13 @@ def delete_stream_channel(
 
         stream_key = channel.stream_key or channel.name
 
-        print(f"🗑️ حذف {stream_key} من MistServer...")
+        print(f"🗑️ حذف {stream_key} من خادم المشاهدة...")
         services.delete_mistserver_stream(stream_key)
 
         db.delete(channel)
         db.commit()
 
-        return {"status": "success", "message": f"تم حذف القناة {channel.name} بنجاح من النظام و MistServer"}
+        return {"status": "success", "message": f"تم حذف القناة {channel.name} بنجاح من النظام وخادم المشاهدة"}
     except Exception as e:
         return {"status": "error", "message": f"فشل في حذف القناة: {str(e)}"}
 
@@ -781,9 +781,9 @@ def get_mistserver_stream_json(stream_name: str):
         if response.ok:
             return response.json()
         else:
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch from MistServer")
+            raise HTTPException(status_code=response.status_code, detail="تعذر جلب البيانات من خادم المشاهدة")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"MistServer connection error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"خطأ اتصال مع خادم المشاهدة: {str(e)}")
 
 
 @router.get("/mistserver/hls/{stream_name}/{file_path:path}", tags=["MistServer Proxy"])
@@ -822,11 +822,11 @@ async def proxy_hls_stream(stream_name: str, file_path: str, request: Request):
         else:
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"MistServer returned {response.status_code}"
+                detail=f"خادم المشاهدة أعاد الحالة {response.status_code}"
             )
     except _requests.exceptions.RequestException as e:
-        print(f"❌ MistServer connection error: {e}")
-        raise HTTPException(status_code=502, detail=f"Cannot connect to MistServer: {str(e)}")
+        print(f"❌ خطأ اتصال خادم المشاهدة: {e}")
+        raise HTTPException(status_code=502, detail=f"تعذر الاتصال بخادم المشاهدة: {str(e)}")
     except Exception as e:
         print(f"❌ Proxy error: {e}")
         raise HTTPException(status_code=500, detail=f"Proxy error: {str(e)}")

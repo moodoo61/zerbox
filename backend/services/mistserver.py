@@ -27,11 +27,11 @@ def restart_mistserver(wait_seconds: int = 5) -> dict:
                 "message": f"فشل systemctl restart: {r.stderr or r.stdout or 'unknown'}"
             }
         time.sleep(wait_seconds)
-        return {"status": "success", "message": "تم إعادة تشغيل MistServer"}
+        return {"status": "success", "message": "تم إعادة تشغيل خادم المشاهدة"}
     except FileNotFoundError:
         return {"status": "error", "message": "systemctl غير متوفر"}
     except subprocess.TimeoutExpired:
-        return {"status": "error", "message": "انتهت مهلة إعادة تشغيل MistServer"}
+        return {"status": "error", "message": "انتهت مهلة إعادة تشغيل خادم المشاهدة"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
