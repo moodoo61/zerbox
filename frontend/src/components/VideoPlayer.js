@@ -39,6 +39,9 @@ const VideoPlayer = ({
     const retryTimerRef = useRef(null);
     const retryCountRef = useRef(0);
     const waitingTimerRef = useRef(null);
+    const stallRecoveryTimerRef = useRef(null);
+    const recoveryInFlightRef = useRef(false);
+    const loadChannelRef = useRef(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -121,6 +124,8 @@ const VideoPlayer = ({
         if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
         if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
         if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
+        if (stallRecoveryTimerRef.current) { clearTimeout(stallRecoveryTimerRef.current); stallRecoveryTimerRef.current = null; }
+        recoveryInFlightRef.current = false;
         if (hlsRef.current) {
             hlsRef.current.destroy();
             hlsRef.current = null;
@@ -155,6 +160,47 @@ const VideoPlayer = ({
         bar.style.width = `${pct}%`;
         rafRef.current = requestAnimationFrame(updateBufferBar);
     }, []);
+
+    const recoverFromStall = useCallback(async (reason = 'stall') => {
+        const video = videoRef.current;
+        if (!video || video.paused || recoveryInFlightRef.current) return;
+        recoveryInFlightRef.current = true;
+
+        try {
+            console.warn(`Auto recover start (${reason})`);
+            setIsLoading(true);
+            setError(null);
+
+            if (hlsRef.current) {
+                try { hlsRef.current.startLoad(-1); } catch { /* تجاهل */ }
+                try { hlsRef.current.recoverMediaError(); } catch { /* تجاهل */ }
+                await attemptPlay(video);
+                return;
+            }
+
+            if (flvRef.current) {
+                try {
+                    flvRef.current.unload();
+                    flvRef.current.load();
+                    await attemptPlay(video);
+                    return;
+                } catch { /* تجاهل */ }
+            }
+
+            if (loadChannelRef.current) {
+                await loadChannelRef.current();
+            }
+        } finally {
+            setTimeout(() => { recoveryInFlightRef.current = false; }, 2000);
+        }
+    }, [attemptPlay]);
+
+    const scheduleStallRecovery = useCallback(() => {
+        if (stallRecoveryTimerRef.current) clearTimeout(stallRecoveryTimerRef.current);
+        stallRecoveryTimerRef.current = setTimeout(() => {
+            recoverFromStall('waiting-timeout');
+        }, 12000);
+    }, [recoverFromStall]);
 
     // ==================== إنشاء مشغل HLS ====================
     const createHlsPlayer = useCallback((url, video) => {
@@ -214,6 +260,7 @@ const VideoPlayer = ({
                     return;
                 }
                 setError('خطأ في الشبكة - تعذر الوصول للبث');
+                recoverFromStall('hls-network-error');
             } else {
                 setError('خطأ في تشغيل البث');
             }
@@ -225,7 +272,7 @@ const VideoPlayer = ({
 
         hls.loadSource(url);
         hls.attachMedia(video);
-    }, [attemptPlay]);
+    }, [attemptPlay, recoverFromStall]);
 
     // ==================== إنشاء مشغل FLV ====================
     const createFlvPlayer = useCallback((url, video) => {
@@ -275,6 +322,7 @@ const VideoPlayer = ({
                     return;
                 }
                 setError('خطأ في الشبكة - تعذر الوصول للبث');
+                recoverFromStall('flv-network-error');
             } else if (errorType === mpegts.ErrorTypes.MEDIA_ERROR) {
                 setError('خطأ في الوسائط');
             } else {
@@ -289,7 +337,7 @@ const VideoPlayer = ({
         player.on(mpegts.Events.STATISTICS_INFO, () => {
             retryCountRef.current = 0;
         });
-    }, []);
+    }, [recoverFromStall]);
 
     // ==================== تحميل القناة ====================
     const loadChannel = useCallback(async () => {
@@ -353,6 +401,7 @@ const VideoPlayer = ({
             if (stableRefs.current.onError) stableRefs.current.onError(err);
         }
     }, [channel, cleanup, fetchStreamInfo, buildPlaybackUrl, createHlsPlayer, createFlvPlayer, attemptPlay, updateBufferBar]);
+    useEffect(() => { loadChannelRef.current = loadChannel; }, [loadChannel]);
 
     // ==================== تأثيرات دورة الحياة ====================
     // تشغيل القناة فقط عندما تكون مفعّلة (لا نرسل طلب التشغيل أثناء التفعيل)
@@ -590,18 +639,25 @@ const VideoPlayer = ({
                     onLoadStart={() => { setIsLoading(true); setError(null); }}
                     onCanPlay={() => {
                         if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
+                        if (stallRecoveryTimerRef.current) { clearTimeout(stallRecoveryTimerRef.current); stallRecoveryTimerRef.current = null; }
                         setIsLoading(false); setError(null);
                     }}
                     onWaiting={() => {
                         if (waitingTimerRef.current) clearTimeout(waitingTimerRef.current);
                         waitingTimerRef.current = setTimeout(() => setIsLoading(true), 800);
+                        scheduleStallRecovery();
                     }}
                     onPlaying={() => {
                         if (waitingTimerRef.current) { clearTimeout(waitingTimerRef.current); waitingTimerRef.current = null; }
+                        if (stallRecoveryTimerRef.current) { clearTimeout(stallRecoveryTimerRef.current); stallRecoveryTimerRef.current = null; }
                         setIsLoading(false); setIsPlaying(true);
                     }}
                     onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
+                    onPause={() => {
+                        if (stallRecoveryTimerRef.current) { clearTimeout(stallRecoveryTimerRef.current); stallRecoveryTimerRef.current = null; }
+                        setIsPlaying(false);
+                    }}
+                    onStalled={scheduleStallRecovery}
                     onError={() => {
                         if (!hlsRef.current && !flvRef.current) {
                             const err = new Error('فشل في تحميل الفيديو - تحقق من وجود البث');
