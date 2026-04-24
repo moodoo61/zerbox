@@ -11,6 +11,7 @@ import DeliveryRequestsManager from './components/DeliveryRequestsManager';
 import AppsManager from './components/AppsManager';
 import NotificationsManager from './components/NotificationsManager';
 import ViewerPage from './components/ViewerPage';
+import { UpdateStatusProvider } from './components/UpdateStatusProvider';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { arEG } from '@mui/material/locale';
 
@@ -126,7 +127,13 @@ function App() {
 
           <Route
             path="/admin"
-            element={auth ? <AdminLayout setAuth={setAuth} userInfo={userInfo} /> : <Navigate to="/login" />}
+            element={
+              auth ? (
+                <UpdateStatusProvider auth={auth}>
+                  <AdminLayout setAuth={setAuth} userInfo={userInfo} />
+                </UpdateStatusProvider>
+              ) : <Navigate to="/login" />
+            }
           >
             <Route index element={<Dashboard auth={auth} userInfo={userInfo} />} />
             <Route path="services" element={<ServiceManager auth={auth} userInfo={userInfo} />} />
