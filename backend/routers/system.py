@@ -57,9 +57,21 @@ def check_system_update(username: str = Depends(check_auth)):
 @router.post("/api/system/update", tags=["System Update"])
 def start_system_update(username: str = Depends(check_auth)):
     """بدء عملية التحديث (تنزيل + بناء + إعادة تشغيل)."""
+    current_status = services.get_update_status()
+    if current_status.get("status") == "updating":
+        return {
+            "status": "already_running",
+            "message": "عملية تحديث جارية بالفعل",
+            "current_status": current_status,
+        }
+
     update_info = services.check_for_updates()
     if not update_info.get("has_update"):
-        return {"status": "error", "message": "لا يوجد تحديث متاح"}
+        return {
+            "status": "error",
+            "message": "لا يوجد تحديث متاح على origin/main",
+            "current_status": current_status,
+        }
     target = update_info.get("latest_version", "")
     return services.start_update(target_version=target)
 

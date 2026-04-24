@@ -17,6 +17,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { VscDashboard } from "react-icons/vsc";
 import { GrServices } from "react-icons/gr";
 import { IoSettingsOutline } from "react-icons/io5";
+import GlobalUpdateBanner from './GlobalUpdateBanner';
 
 const ROLE_LABELS = { owner: 'مالك', manager: 'مدير', sub_manager: 'مدير فرعي' };
 
@@ -248,6 +249,7 @@ const AdminLayout = ({ setAuth, userInfo }) => {
                     minHeight: '100vh'
                 }}
             >
+                <GlobalUpdateBanner />
                 <Outlet />
             </Box>
 

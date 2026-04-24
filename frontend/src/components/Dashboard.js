@@ -5,20 +5,13 @@ import SystemMonitor from './SystemMonitor';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
+import { useUpdateStatus } from './UpdateStatusProvider';
 
 const Dashboard = ({ auth, userInfo }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const [vpnConnected, setVpnConnected] = useState(false);
-    const [currentVersion, setCurrentVersion] = useState('');
-    const [updateAvailable, setUpdateAvailable] = useState(null);
-
-    useEffect(() => {
-        fetch('/api/system/version')
-            .then(res => res.json())
-            .then(data => setCurrentVersion(data.version || ''))
-            .catch(() => {});
-    }, []);
+    const { currentVersion, updateInfo, isUpdateInProgress, updateStatus } = useUpdateStatus();
 
     useEffect(() => {
         if (!auth) return;
@@ -36,26 +29,10 @@ const Dashboard = ({ auth, userInfo }) => {
         return () => clearInterval(interval);
     }, [auth]);
 
-    useEffect(() => {
-        if (!auth) return;
-        const checkUpdate = async () => {
-            try {
-                const res = await fetch('/api/system/check-update', {
-                    headers: { 'Authorization': 'Basic ' + auth }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.has_update) setUpdateAvailable(data);
-                }
-            } catch (_) {}
-        };
-        checkUpdate();
-    }, [auth]);
-
     return (
         <Box sx={{ width: '100%' }}>
             {/* إشعار التحديث */}
-            {updateAvailable && (
+            {updateInfo?.has_update && !isUpdateInProgress && (
                 <Paper sx={{
                     p: 1.5, mb: 1.5,
                     background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
@@ -66,11 +43,11 @@ const Dashboard = ({ auth, userInfo }) => {
                     <SystemUpdateAltIcon />
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="body2" fontWeight={700}>
-                            يتوفر تحديث جديد — الإصدار {updateAvailable.latest_version}
+                            يتوفر تحديث جديد — الإصدار {updateInfo.latest_version}
                         </Typography>
-                        {updateAvailable.release_name && (
+                        {updateInfo.release_name && (
                             <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                                {updateAvailable.release_name}
+                                {updateInfo.release_name}
                             </Typography>
                         )}
                     </Box>
@@ -86,6 +63,19 @@ const Dashboard = ({ auth, userInfo }) => {
                     >
                         تحديث الآن
                     </Button>
+                </Paper>
+            )}
+            {isUpdateInProgress && (
+                <Paper sx={{
+                    p: 1.5, mb: 1.5, borderRadius: 2,
+                    border: '1px solid', borderColor: 'info.main', bgcolor: 'info.50'
+                }}>
+                    <Typography variant="body2" fontWeight={700} color="info.dark">
+                        التحديث قيد التنفيذ: {updateStatus.progress || 0}%
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {updateStatus.message || 'جاري تنفيذ خطوات التحديث...'}
+                    </Typography>
                 </Paper>
             )}
 

@@ -714,7 +714,7 @@ const SettingsManager = ({ auth, setAuth, userInfo, setUserInfo }) => {
 
             {/* تاب التحديث */}
             {settingsTab === 3 && (
-                <UpdateTab auth={auth} />
+                <UpdateTab />
             )}
         </Paper>
     );

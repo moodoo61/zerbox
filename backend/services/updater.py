@@ -9,6 +9,7 @@ from .system_log import log_event
 GITHUB_REPO = "moodoo61/zerbox"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+UPDATE_BRANCH = "main"
 
 _update_state = {
     "status": "idle",
@@ -46,56 +47,81 @@ def _parse_version(version_str: str) -> tuple:
     return tuple(result[:3])
 
 
+def _normalize_version(version_str: str) -> str:
+    return re.sub(r'^[vV]', '', (version_str or '').strip())
+
+
 def _is_newer(remote_version: str, local_version: str) -> bool:
     return _parse_version(remote_version) > _parse_version(local_version)
 
 
+def _get_local_head() -> str:
+    ok, out = _run_cmd(["git", "rev-parse", "HEAD"])
+    if not ok:
+        return ""
+    return out.strip().splitlines()[-1]
+
+
+def _get_remote_main_head() -> str:
+    ok, out = _run_cmd(["git", "ls-remote", "--heads", "origin", UPDATE_BRANCH])
+    if not ok:
+        return ""
+    first = out.strip().splitlines()
+    if not first:
+        return ""
+    return first[0].split()[0]
+
+
 def check_for_updates() -> dict:
-    """فحص GitHub Releases للبحث عن إصدار أحدث."""
+    """فحص وجود تحديث وفق ما سيتم تثبيته فعلياً من origin/main."""
     import requests
 
     current = get_current_version()
+    _run_cmd(["git", "fetch", "origin", UPDATE_BRANCH])
+    local_head = _get_local_head()
+    remote_head = _get_remote_main_head()
+    has_branch_update = bool(local_head and remote_head and local_head != remote_head)
+    latest_on_main = current
+    ok_main_version, out_main_version = _run_cmd(["git", "show", f"origin/{UPDATE_BRANCH}:VERSION"])
+    if ok_main_version and out_main_version.strip():
+        latest_on_main = _normalize_version(out_main_version.splitlines()[-1])
+
+    release_payload = {}
     try:
         resp = requests.get(
             GITHUB_API_URL,
             timeout=15,
             headers={"Accept": "application/vnd.github.v3+json"}
         )
-        if resp.status_code == 404:
-            return {
-                "has_update": False,
-                "current_version": current,
-                "latest_version": current,
-                "message": "لا توجد إصدارات منشورة  بعد",
-            }
-        if not resp.ok:
-            return {
-                "has_update": False,
-                "current_version": current,
-                "error": f"فشل الاتصال بـ : {resp.status_code}",
-            }
-        data = resp.json()
-        latest_tag = data.get("tag_name", "")
-        release_name = data.get("name", latest_tag)
-        release_body = data.get("body", "")
-        published_at = data.get("published_at", "")
-        has_update = _is_newer(latest_tag, current)
+        if resp.ok:
+            release_payload = resp.json()
+    except Exception:
+        release_payload = {}
 
-        return {
-            "has_update": has_update,
-            "current_version": current,
-            "latest_version": latest_tag,
-            "release_name": release_name,
-            "release_notes": release_body,
-            "published_at": published_at,
-            "download_url": data.get("html_url", ""),
-        }
-    except Exception as e:
-        return {
-            "has_update": False,
-            "current_version": current,
-            "error": f"خطأ في فحص التحديثات: {str(e)}",
-        }
+    latest_tag = release_payload.get("tag_name", "")
+    release_name = release_payload.get("name", latest_tag)
+    release_body = release_payload.get("body", "")
+    published_at = release_payload.get("published_at", "")
+    has_version_update = _is_newer(latest_on_main, current)
+    has_update = has_version_update or has_branch_update
+
+    result = {
+        "has_update": has_update,
+        "current_version": current,
+        "latest_version": latest_on_main,
+        "latest_release_version": latest_tag,
+        "update_source": f"origin/{UPDATE_BRANCH}",
+        "release_name": release_name,
+        "release_notes": release_body,
+        "published_at": published_at,
+        "download_url": release_payload.get("html_url", ""),
+        "local_commit": local_head,
+        "remote_commit": remote_head,
+        "has_branch_update": has_branch_update,
+    }
+    if not release_payload:
+        result["message"] = "تعذر جلب تفاصيل آخر إصدار من GitHub، لكن تم فحص origin/main بنجاح"
+    return result
 
 
 def get_update_status() -> dict:
@@ -155,7 +181,7 @@ def _force_update_mistserver_conf() -> tuple:
     # لو كان مفعّل skip-worktree سابقاً على هذا الجهاز، نعطّله حتى نستطيع تحديث الملف.
     _run_cmd(["git", "update-index", "--no-skip-worktree", rel_path])
 
-    ok, out = _run_cmd(["git", "restore", "--source=origin/main", "--staged", "--worktree", "--", rel_path])
+    ok, out = _run_cmd(["git", "restore", f"--source=origin/{UPDATE_BRANCH}", "--staged", "--worktree", "--", rel_path])
     if not ok:
         return False, out
     return True, "تمت مزامنة mistserver.conf مع origin/main"
@@ -197,9 +223,12 @@ def _sync_quran_service_unit() -> tuple:
 def _do_update(target_version: str):
     """تنفيذ عملية التحديث في خيط خلفي."""
     try:
+        old_version = _normalize_version(_read_version_file())
+        old_head = _get_local_head()
+
         _set_state("updating", 5, "جاري جلب التحديثات من ...", "git_fetch")
 
-        ok, out = _run_cmd(["git", "fetch", "origin"])
+        ok, out = _run_cmd(["git", "fetch", "origin", UPDATE_BRANCH])
         if not ok:
             _set_state("error", 5, f"فشل في جلب التحديثات: {out}", error=out)
             log_event(f"فشل تحديث النظام (git fetch): {out}", "error", "updater")
@@ -213,10 +242,16 @@ def _do_update(target_version: str):
             log_event(f"فشل تحديث mistserver.conf قبل pull: {out_conf}", "error", "updater")
             return
 
-        ok, out = _run_cmd(["git", "pull", "origin", "main"])
+        ok, out = _run_cmd(["git", "pull", "--ff-only", "origin", UPDATE_BRANCH])
         if not ok:
             _set_state("error", 15, f"فشل في تنزيل الملفات: {out}", error=out)
             log_event(f"فشل تحديث النظام (git pull): {out}", "error", "updater")
+            return
+
+        new_head = _get_local_head()
+        if old_head and new_head and old_head == new_head:
+            _set_state("error", 18, "لم يتم تطبيق أي تعديلات جديدة من الفرع الرئيسي", error="No new commit pulled")
+            log_event("فشل التحديث: لم يتغير commit بعد git pull", "error", "updater")
             return
 
         _set_state("updating", 30, "جاري تثبيت مكتبات Python...", "pip_install")
@@ -269,31 +304,46 @@ def _do_update(target_version: str):
                     )
                     log_event(f"تحذير مزامنة خدمة القرآن: {out_sync}", "warning", "updater")
 
-        _set_state("updating", 90, "جاري إعادة تشغيل النظام...", "restart")
+        _set_state("updating", 88, "التحقق من الإصدار المطبق...", "done")
+        new_version = _normalize_version(_read_version_file())
 
-        new_version = _read_version_file()
-        _set_state("updating", 95, f"تم التحديث إلى الإصدار {new_version}", "done")
+        if old_version and new_version and _parse_version(new_version) <= _parse_version(old_version):
+            error_msg = (
+                f"اكتملت العملية لكن الإصدار لم يرتفع (الحالي: {old_version}, بعد التحديث: {new_version}). "
+                "يرجى التحقق من ملف VERSION على origin/main."
+            )
+            _set_state("error", 88, error_msg, error=error_msg)
+            log_event(error_msg, "error", "updater")
+            return
 
-        log_event(
-            f"تم تثبيت النسخة الجديدة ({new_version}) بنجاح",
-            "success", "updater"
-        )
+        if target_version and _parse_version(new_version) < _parse_version(target_version):
+            error_msg = (
+                f"الإصدار المطبق ({new_version}) أقل من الإصدار المستهدف ({target_version}). "
+                "تم إيقاف إعلان النجاح لمنع حالة غير متسقة."
+            )
+            _set_state("error", 89, error_msg, error=error_msg)
+            log_event(error_msg, "error", "updater")
+            return
 
-        _set_state("success", 100,
-                   f"تم التحديث بنجاح إلى الإصدار {new_version}. جاري إعادة التشغيل...",
-                   "complete")
+        _set_state("updating", 92, "جاري إعادة تشغيل خدمة النظام...", "restart")
+        ok_restart, out_restart = _run_systemctl(["restart", "zero"], timeout=120)
+        if not ok_restart:
+            _set_state("error", 92, f"فشل إعادة تشغيل خدمة zero: {out_restart}", error=out_restart)
+            log_event(f"فشل restart لخدمة zero: {out_restart}", "error", "updater")
+            return
 
+        ok_active, out_active = _run_systemctl(["is-active", "zero"], timeout=30)
+        if not ok_active or "active" not in (out_active or "").strip():
+            error_msg = f"تم تنفيذ restart لكن الخدمة ليست بحالة active: {out_active}"
+            _set_state("error", 95, error_msg, error=error_msg)
+            log_event(error_msg, "error", "updater")
+            return
+
+        _set_state("updating", 98, f"تم التحديث إلى الإصدار {new_version}", "complete")
         with _update_lock:
             _update_state["new_version"] = new_version
-
-        try:
-            subprocess.Popen(
-                ["sudo", "systemctl", "restart", "zero"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-        except Exception:
-            _set_state("success", 100,
-                       f"تم التحديث بنجاح. يرجى إعادة تشغيل الخدمة يدوياً: sudo systemctl restart zero")
+        _set_state("success", 100, f"تم التحديث بنجاح إلى الإصدار {new_version}", "complete")
+        log_event(f"تم تثبيت النسخة الجديدة ({new_version}) بنجاح", "success", "updater")
 
     except Exception as e:
         _set_state("error", 0, f"خطأ غير متوقع: {str(e)}", error=str(e))
@@ -304,7 +354,11 @@ def start_update(target_version: str = "") -> dict:
     """بدء عملية التحديث في خيط خلفي."""
     with _update_lock:
         if _update_state["status"] == "updating":
-            return {"status": "error", "message": "عملية تحديث جارية بالفعل"}
+            return {
+                "status": "already_running",
+                "message": "عملية تحديث جارية بالفعل",
+                "current_status": dict(_update_state),
+            }
         _update_state.update({
             "status": "updating",
             "progress": 0,
@@ -317,4 +371,4 @@ def start_update(target_version: str = "") -> dict:
     log_event("بدء عملية تحديث النظام...", "info", "updater")
     thread = threading.Thread(target=_do_update, args=(target_version,), daemon=True)
     thread.start()
-    return {"status": "started", "message": "تم بدء عملية التحديث"}
+    return {"status": "started", "message": "تم بدء عملية التحديث", "current_status": get_update_status()}

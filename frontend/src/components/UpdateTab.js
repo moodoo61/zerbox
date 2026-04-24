@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
     Box, Typography, Button, Paper, CircularProgress, Alert,
     LinearProgress, Chip, Divider, List, ListItem, ListItemIcon,
@@ -14,6 +14,7 @@ import {
     Info as InfoIcon,
     Schedule as ScheduleIcon
 } from '@mui/icons-material';
+import { useUpdateStatus } from './UpdateStatusProvider';
 
 const STEP_LABELS = {
     git_fetch: 'جلب التحديثات ',
@@ -31,96 +32,27 @@ const STEP_LABELS = {
     complete: 'تم التحديث بنجاح',
 };
 
-const UpdateTab = ({ auth }) => {
-    const [currentVersion, setCurrentVersion] = useState('');
-    const [checking, setChecking] = useState(false);
-    const [updateInfo, setUpdateInfo] = useState(null);
-    const [updateStatus, setUpdateStatus] = useState(null);
-    const [updating, setUpdating] = useState(false);
+const UpdateTab = () => {
     const [showConfirm, setShowConfirm] = useState(false);
-    const [error, setError] = useState(null);
-    const pollRef = useRef(null);
+    const {
+        currentVersion,
+        checking,
+        updateInfo,
+        updateStatus,
+        error,
+        isUpdateInProgress,
+        checkForUpdate,
+        startUpdate: startUpdateRequest,
+        dismissSuccess,
+        dismissError,
+    } = useUpdateStatus();
 
-    const headers = useMemo(() => ({ Authorization: `Basic ${auth}` }), [auth]);
-
-    useEffect(() => {
-        fetch('/api/system/version')
-            .then(r => r.json())
-            .then(d => setCurrentVersion(d.version || ''))
-            .catch(() => {});
-    }, []);
-
-    const checkForUpdate = useCallback(async () => {
-        setChecking(true);
-        setError(null);
-        try {
-            const res = await fetch('/api/system/check-update', { headers });
-            const data = await res.json();
-            if (data.error) {
-                setError(data.error);
-            }
-            setUpdateInfo(data);
-        } catch (e) {
-            setError('فشل الاتصال بالخادم');
-        } finally {
-            setChecking(false);
-        }
-    }, [headers]);
-
-    const pollUpdateStatus = useCallback(async () => {
-        try {
-            const res = await fetch('/api/system/update-status', { headers });
-            const data = await res.json();
-            setUpdateStatus(data);
-
-            if (data.status === 'success' || data.status === 'error' || data.status === 'idle') {
-                if (pollRef.current) {
-                    clearInterval(pollRef.current);
-                    pollRef.current = null;
-                }
-                if (data.status === 'success') {
-                    setUpdating(false);
-                }
-                if (data.status === 'error') {
-                    setUpdating(false);
-                    setError(data.error || data.message);
-                }
-            }
-        } catch {
-            // الخادم قد يكون يعيد التشغيل
-        }
-    }, [headers]);
-
-    const startUpdate = async () => {
-        setShowConfirm(false);
-        setUpdating(true);
-        setError(null);
-        setUpdateStatus(null);
-        try {
-            const res = await fetch('/api/system/update', {
-                method: 'POST',
-                headers,
-            });
-            const data = await res.json();
-            if (data.status === 'error') {
-                setError(data.message);
-                setUpdating(false);
-                return;
-            }
-            pollRef.current = setInterval(pollUpdateStatus, 1500);
-        } catch (e) {
-            setError('فشل بدء التحديث');
-            setUpdating(false);
+    const handleStartUpdate = async () => {
+        const data = await startUpdateRequest();
+        if (data.status !== 'error') {
+            setShowConfirm(false);
         }
     };
-
-    useEffect(() => {
-        return () => {
-            if (pollRef.current) clearInterval(pollRef.current);
-        };
-    }, []);
-
-    const isUpdateInProgress = updating || (updateStatus && updateStatus.status === 'updating');
 
     return (
         <Box sx={{ p: { xs: '15px', md: 3 }, maxWidth: 700 }}>
@@ -162,7 +94,7 @@ const UpdateTab = ({ auth }) => {
             )}
 
             {error && !isUpdateInProgress && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 2 }} onClose={dismissError}>
                     {error}
                 </Alert>
             )}
@@ -282,7 +214,7 @@ const UpdateTab = ({ auth }) => {
 
             {/* نتيجة التحديث */}
             {updateStatus && updateStatus.status === 'success' && (
-                <Alert severity="success" sx={{ mb: 2 }} icon={<CheckIcon />}>
+                <Alert severity="success" sx={{ mb: 2 }} icon={<CheckIcon />} onClose={dismissSuccess}>
                     <Typography variant="body2" fontWeight={600}>{updateStatus.message}</Typography>
                     {updateStatus.new_version && (
                         <Typography variant="caption">الإصدار الجديد: {updateStatus.new_version}</Typography>
@@ -311,7 +243,13 @@ const UpdateTab = ({ auth }) => {
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button onClick={() => setShowConfirm(false)}>إلغاء</Button>
-                    <Button variant="contained" color="success" onClick={startUpdate} startIcon={<DownloadIcon />}>
+                    <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleStartUpdate}
+                        startIcon={<DownloadIcon />}
+                        disabled={isUpdateInProgress}
+                    >
                         بدء التحديث
                     </Button>
                 </DialogActions>
