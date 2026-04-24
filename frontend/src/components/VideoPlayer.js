@@ -22,7 +22,6 @@ const VideoPlayer = ({
     channel,
     isActivating = false,
     streamStatus = 'unknown',
-    autoPlay = false,
     showControls = true,
     onError,
     viewerCount = 0,
@@ -53,7 +52,7 @@ const VideoPlayer = ({
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const shouldAutoPlay = userInitiated || autoPlay;
+    const shouldAutoPlay = userInitiated;
 
     const stableRefs = useRef({ settings, onError, shouldAutoPlay });
     useEffect(() => { stableRefs.current = { settings, onError, shouldAutoPlay }; });
@@ -151,7 +150,7 @@ const VideoPlayer = ({
                 break;
             }
         }
-        const maxDisplay = 30;
+        const maxDisplay = Math.max(10, stableRefs.current.settings.buffer_size || 30);
         const pct = Math.min(100, (bufferAhead / maxDisplay) * 100);
         bar.style.width = `${pct}%`;
         rafRef.current = requestAnimationFrame(updateBufferBar);
@@ -219,6 +218,9 @@ const VideoPlayer = ({
                 setError('خطأ في تشغيل البث');
             }
             setIsLoading(false);
+            if (stableRefs.current.onError) {
+                stableRefs.current.onError(new Error(data?.details || 'HLS fatal error'));
+            }
         });
 
         hls.loadSource(url);
@@ -279,6 +281,9 @@ const VideoPlayer = ({
                 setError('خطأ في تشغيل البث');
             }
             setIsLoading(false);
+            if (stableRefs.current.onError) {
+                stableRefs.current.onError(new Error(errorDetail || errorType || 'FLV error'));
+            }
         });
 
         player.on(mpegts.Events.STATISTICS_INFO, () => {
@@ -462,6 +467,7 @@ const VideoPlayer = ({
     const VolumeIcon = useMemo(() =>
         isMuted || volume === 0 ? VolumeOffIcon : volume < 50 ? VolumeDownIcon : VolumeUpIcon
     , [isMuted, volume]);
+    const pipEnabled = typeof document !== 'undefined' && !!document.pictureInPictureEnabled;
 
     // ==================== الواجهة ====================
 
@@ -598,8 +604,10 @@ const VideoPlayer = ({
                     onPause={() => setIsPlaying(false)}
                     onError={() => {
                         if (!hlsRef.current && !flvRef.current) {
-                            setError('فشل في تحميل الفيديو - تحقق من وجود البث');
+                            const err = new Error('فشل في تحميل الفيديو - تحقق من وجود البث');
+                            setError(err.message);
                             setIsLoading(false);
+                            if (stableRefs.current.onError) stableRefs.current.onError(err);
                         }
                     }}
                     onVolumeChange={() => {
@@ -717,24 +725,22 @@ const VideoPlayer = ({
                                     {isPlaying ? <PauseIcon sx={{ fontSize: { xs: 22, sm: 26 } }} /> : <PlayIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />}
                                 </CtrlBtn>
 
-                                {settings.enable_volume_control !== false && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', '&:hover .vol-s': { width: { xs: 55, sm: 75 }, opacity: 1, mx: 0.5 } }}>
-                                        <CtrlBtn onClick={toggleMute} size="small">
-                                            <VolumeIcon sx={{ fontSize: { xs: 17, sm: 20 } }} />
-                                        </CtrlBtn>
-                                        <Slider
-                                            className="vol-s"
-                                            value={isMuted ? 0 : volume} onChange={handleVolumeChange}
-                                            min={0} max={100} size="small"
-                                            sx={{
-                                                width: 0, opacity: 0, transition: 'all 0.3s', color: '#3b82f6',
-                                                '& .MuiSlider-thumb': { width: 10, height: 10, bgcolor: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.4)' },
-                                                '& .MuiSlider-track': { border: 'none' },
-                                                '& .MuiSlider-rail': { bgcolor: 'rgba(255,255,255,0.15)' }
-                                            }}
-                                        />
-                                    </Box>
-                                )}
+                                <Box sx={{ display: 'flex', alignItems: 'center', '&:hover .vol-s': { width: { xs: 55, sm: 75 }, opacity: 1, mx: 0.5 } }}>
+                                    <CtrlBtn onClick={toggleMute} size="small">
+                                        <VolumeIcon sx={{ fontSize: { xs: 17, sm: 20 } }} />
+                                    </CtrlBtn>
+                                    <Slider
+                                        className="vol-s"
+                                        value={isMuted ? 0 : volume} onChange={handleVolumeChange}
+                                        min={0} max={100} size="small"
+                                        sx={{
+                                            width: 0, opacity: 0, transition: 'all 0.3s', color: '#3b82f6',
+                                            '& .MuiSlider-thumb': { width: 10, height: 10, bgcolor: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.4)' },
+                                            '& .MuiSlider-track': { border: 'none' },
+                                            '& .MuiSlider-rail': { bgcolor: 'rgba(255,255,255,0.15)' }
+                                        }}
+                                    />
+                                </Box>
 
                                 <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, ml: 0.5 }}>
                                     <Box sx={{ width: '1px', height: 14, bgcolor: 'rgba(255,255,255,0.15)' }} />
@@ -771,18 +777,16 @@ const VideoPlayer = ({
                                         <ScreenRotationIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />
                                     </CtrlBtn>
                                 )}
-                                {document.pictureInPictureEnabled && (
+                                {pipEnabled && (
                                     <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
                                         <CtrlBtn onClick={togglePiP} tooltip="صورة في صورة" size="small">
                                             <PipIcon sx={{ fontSize: { xs: 16, sm: 19 } }} />
                                         </CtrlBtn>
                                     </Box>
                                 )}
-                                {settings.enable_fullscreen !== false && (
-                                    <CtrlBtn onClick={toggleFullscreen} tooltip={isFullscreen ? 'خروج' : 'ملء الشاشة'}>
-                                        {isFullscreen ? <FullscreenExitIcon sx={{ fontSize: { xs: 22, sm: 26 } }} /> : <FullscreenIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />}
-                                    </CtrlBtn>
-                                )}
+                                <CtrlBtn onClick={toggleFullscreen} tooltip={isFullscreen ? 'خروج' : 'ملء الشاشة'}>
+                                    {isFullscreen ? <FullscreenExitIcon sx={{ fontSize: { xs: 22, sm: 26 } }} /> : <FullscreenIcon sx={{ fontSize: { xs: 22, sm: 26 } }} />}
+                                </CtrlBtn>
                             </Box>
                         </Box>
                     </Box>

@@ -94,18 +94,10 @@ const ViewerPage = () => {
     }, [pageData, hiddenChannelKeys]);
 
     useEffect(() => {
-        if (!filteredChannels.length) {
-            setSelectedChannel(null);
-            return;
-        }
-        if (selectedChannel && filteredChannels.some((ch) => ch.id === selectedChannel.id)) {
-            return;
-        }
-        const defaultByName = pageData?.settings?.default_channel
-            ? filteredChannels.find((ch) => ch.name === pageData.settings.default_channel)
-            : null;
-        setSelectedChannel(defaultByName || filteredChannels[0]);
-    }, [filteredChannels, pageData?.settings?.default_channel, selectedChannel]);
+        if (!selectedChannel) return;
+        const stillVisible = filteredChannels.some((ch) => ch.id === selectedChannel.id);
+        if (!stillVisible) setSelectedChannel(null);
+    }, [filteredChannels, selectedChannel]);
 
     /* ── Handlers ── */
     const handleChannelSelect = (channel) => {
@@ -255,7 +247,7 @@ const ViewerPage = () => {
 
             {/* ══════════ Main Content ══════════ */}
             <main className="vp-content">
-                <div className={`vp-layout ${settings.show_channel_list ? 'vp-layout--with-sidebar' : ''}`}>
+                <div className="vp-layout vp-layout--with-sidebar">
 
                     {/* ══ Player Column ══ */}
                     <div>
@@ -273,8 +265,7 @@ const ViewerPage = () => {
                                            ?? 'inactive')
                                         : 'unknown'
                                 }
-                                autoPlay={settings.auto_play}
-                                showControls={settings.show_controls}
+                                showControls
                                 onError={(err) => console.error('خطأ فيديو:', err)}
                                 viewerCount={
                                     selectedChannel
@@ -291,80 +282,78 @@ const ViewerPage = () => {
                     </div>
 
                     {/* ══ Sidebar ══ */}
-                    {settings.show_channel_list && (
-                        <aside className="vp-sidebar">
-                            {/* Sidebar header */}
-                            <div className="vp-sidebar__header">
-                                <div className="vp-sidebar__header-top">
-                                    <div className="vp-sidebar__header-left">
-                                        <div className="vp-sidebar__header-icon">
-                                            <LiveTvIcon sx={{ fontSize: 15, color: 'var(--vp-primary-light)' }} />
-                                        </div>
-                                        <span className="vp-sidebar__title">القنوات</span>
+                    <aside className="vp-sidebar">
+                        {/* Sidebar header */}
+                        <div className="vp-sidebar__header">
+                            <div className="vp-sidebar__header-top">
+                                <div className="vp-sidebar__header-left">
+                                    <div className="vp-sidebar__header-icon">
+                                        <LiveTvIcon sx={{ fontSize: 15, color: 'var(--vp-primary-light)' }} />
                                     </div>
-                                    <span className="vp-sidebar__count">{filteredChannels.length}</span>
+                                    <span className="vp-sidebar__title">القنوات</span>
                                 </div>
+                                <span className="vp-sidebar__count">{filteredChannels.length}</span>
                             </div>
+                        </div>
 
-                            {/* Channel list */}
-                            <div className="vp-sidebar__list">
-                                {filteredChannels.length === 0 ? (
-                                    <div className="vp-sidebar__empty">لا توجد قنوات مطابقة</div>
-                                ) : (
-                                    filteredChannels.map((channel, index) => {
-                                        const isSelected = selectedChannel?.id === channel.id;
-                                        const sk = channel.stream_key || channel.name;
-                                        const viewers = channelStats[sk]?.connections ?? 0;
-                                        const isActive = channelStats[sk]?.status === 'active';
+                        {/* Channel list */}
+                        <div className="vp-sidebar__list">
+                            {filteredChannels.length === 0 ? (
+                                <div className="vp-sidebar__empty">لا توجد قنوات مطابقة</div>
+                            ) : (
+                                filteredChannels.map((channel, index) => {
+                                    const isSelected = selectedChannel?.id === channel.id;
+                                    const sk = channel.stream_key || channel.name;
+                                    const viewers = channelStats[sk]?.connections ?? 0;
+                                    const isActive = channelStats[sk]?.status === 'active';
 
-                                        return (
-                                            <div
-                                                key={channel.id}
-                                                className={`vp-channel ${isSelected ? 'vp-channel--selected' : ''}`}
-                                                onClick={() => handleChannelSelect(channel)}
-                                                role="button"
-                                                tabIndex={0}
-                                                onKeyDown={e => e.key === 'Enter' && handleChannelSelect(channel)}
-                                            >
-                                            <img
-                                                src="/chicon2.png"
-                                                alt={channel.name}
-                                                className="vp-channel__avatar"
-                                            />
+                                    return (
+                                        <div
+                                            key={channel.id}
+                                            className={`vp-channel ${isSelected ? 'vp-channel--selected' : ''}`}
+                                            onClick={() => handleChannelSelect(channel)}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={e => e.key === 'Enter' && handleChannelSelect(channel)}
+                                        >
+                                        <img
+                                            src="/chicon2.png"
+                                            alt={channel.name}
+                                            className="vp-channel__avatar"
+                                        />
 
-                                                <div className="vp-channel__info">
-                                                    <div className="vp-channel__name">
-                                                        {channel.name || `قناة ${index + 1}`}
-                                                    </div>
-                                                    <div className="vp-channel__meta">
-                                                        {settings.show_viewer_count && viewers > 0 && (
-                                                            <div className="vp-channel__viewers">
-                                                                <VisibilityIcon sx={{ fontSize: 10 }} />
-                                                                <span>{viewers}</span>
-                                                            </div>
-                                                        )}
-                                                        {channel.category && (
-                                                            <span className={`vp-channel__cat-badge ${isActive ? 'vp-channel__cat-badge--active' : ''}`}>
-                                                                {channel.category}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                            <div className="vp-channel__info">
+                                                <div className="vp-channel__name">
+                                                    {channel.name || `قناة ${index + 1}`}
                                                 </div>
-
-                                                {isSelected && (
-                                                    <div className="vp-eq">
-                                                        <span className="vp-eq__bar" />
-                                                        <span className="vp-eq__bar" />
-                                                        <span className="vp-eq__bar" />
-                                                    </div>
-                                                )}
+                                                <div className="vp-channel__meta">
+                                                    {settings.show_viewer_count && viewers > 0 && (
+                                                        <div className="vp-channel__viewers">
+                                                            <VisibilityIcon sx={{ fontSize: 10 }} />
+                                                            <span>{viewers}</span>
+                                                        </div>
+                                                    )}
+                                                    {channel.category && (
+                                                        <span className={`vp-channel__cat-badge ${isActive ? 'vp-channel__cat-badge--active' : ''}`}>
+                                                            {channel.category}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </aside>
-                    )}
+
+                                            {isSelected && (
+                                                <div className="vp-eq">
+                                                    <span className="vp-eq__bar" />
+                                                    <span className="vp-eq__bar" />
+                                                    <span className="vp-eq__bar" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </aside>
                 </div>
             </main>
 

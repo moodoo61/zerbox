@@ -189,8 +189,6 @@ class ViewerPageSettingsBase(SQLModel):
     background_color: str = "#f5f5f5"
     show_channel_list: bool = True
     show_viewer_count: bool = True
-    default_channel: Optional[str] = None
-    auto_play: bool = False
     show_controls: bool = True
     
     # إعدادات الستريم والمشغل الجديدة
@@ -230,8 +228,6 @@ class ViewerPageSettingsUpdate(SQLModel):
     background_color: Optional[str] = None
     show_channel_list: Optional[bool] = None
     show_viewer_count: Optional[bool] = None
-    default_channel: Optional[str] = None
-    auto_play: Optional[bool] = None
     show_controls: Optional[bool] = None
     
     # إعدادات الستريم والمشغل الجديدة

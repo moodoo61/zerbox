@@ -115,8 +115,9 @@ def get_system_stats():
         if before is None:
             continue
         network_interfaces[name] = {
-            "sent_bps": max(0, after.bytes_sent - before.bytes_sent),
-            "recv_bps": max(0, after.bytes_recv - before.bytes_recv),
+            # psutil provides byte counters; API fields are in bits/second (bps)
+            "sent_bps": max(0, (after.bytes_sent - before.bytes_sent) * 8),
+            "recv_bps": max(0, (after.bytes_recv - before.bytes_recv) * 8),
         }
     if not vpn_connected and any(n.lower().startswith("ppp") for n in if_stats):
         vpn_connected = any(if_stats.get(n) and if_stats.get(n).isup for n in if_stats if n.lower().startswith("ppp"))

@@ -25,7 +25,7 @@ def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings
                 id=1, is_enabled=False, page_title="البث المباشر",
                 page_description="شاهد القنوات المباشرة", header_color="#1976d2",
                 background_color="#f5f5f5", show_channel_list=True, show_viewer_count=True,
-                default_channel=None, auto_play=False, show_controls=True,
+                show_controls=True,
                 streaming_format="hls", player_type="hls.js",
                 buffer_size=30, max_buffer_length=60, live_back_buffer_length=30,
                 hidden_channels="[]",
@@ -43,7 +43,7 @@ def get_or_create_viewer_page_settings(db: Session) -> models.ViewerPageSettings
             id=1, is_enabled=False, page_title="البث المباشر",
             page_description="شاهد القنوات المباشرة", header_color="#1976d2",
             background_color="#f5f5f5", show_channel_list=True, show_viewer_count=True,
-            default_channel=None, auto_play=False, show_controls=True,
+            show_controls=True,
             streaming_format="hls", player_type="hls.js",
             buffer_size=30, max_buffer_length=60, live_back_buffer_length=30,
             hidden_channels="[]",
@@ -90,14 +90,4 @@ def get_viewer_page_data(db: Session) -> dict:
             channel for channel in channels
             if (channel.stream_key or channel.name) not in hidden_channels
         ]
-    if settings.default_channel:
-        if settings.default_channel in hidden_channels:
-            settings.default_channel = None
-        sorted_channels = []
-        for channel in channels:
-            if channel.name == settings.default_channel:
-                sorted_channels.insert(0, channel)
-            else:
-                sorted_channels.append(channel)
-        channels = sorted_channels
     return {"status": "enabled", "settings": settings, "channels": channels, "total_channels": len(channels)}

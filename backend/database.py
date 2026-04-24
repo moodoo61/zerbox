@@ -216,8 +216,6 @@ def get_or_create_viewer_page_settings(session: Session) -> ViewerPageSettings:
             background_color="#f5f5f5",
             show_channel_list=True,
             show_viewer_count=True,
-            default_channel=None,
-            auto_play=False,
             show_controls=True,
             # إعدادات الستريم والمشغل الجديدة
             streaming_format="hls",

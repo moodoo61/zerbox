@@ -69,11 +69,12 @@ function formatUptime(seconds) {
     return `${d}d ${h}h ${m}m`;
 }
 
-function formatBytesPerSec(bps) {
-    if (bps == null || bps < 0) return '0 B/s';
-    if (bps < 1024) return `${Math.round(bps)} B/s`;
-    if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
-    return `${(bps / (1024 * 1024)).toFixed(2)} MB/s`;
+function formatBitsPerSec(bps) {
+    if (bps == null || bps < 0) return '0 bps';
+    if (bps < 1000) return `${Math.round(bps)} bps`;
+    if (bps < 1000 * 1000) return `${(bps / 1000).toFixed(1)} Kbps`;
+    if (bps < 1000 * 1000 * 1000) return `${(bps / (1000 * 1000)).toFixed(2)} Mbps`;
+    return `${(bps / (1000 * 1000 * 1000)).toFixed(2)} Gbps`;
 }
 
 const LOG_LEVEL_CONFIG = {
@@ -799,14 +800,14 @@ const SystemMonitor = ({ auth, userInfo }) => {
                                             <CloudDownloadIcon sx={{ color: 'success.main', fontSize: 18 }} />
                                             <Typography variant="body2" color="text.secondary">استقبال:</Typography>
                                             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                {formatBytesPerSec(data.recv_bps)}
+                                                {formatBitsPerSec(data.recv_bps)}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <CloudUploadIcon sx={{ color: 'info.main', fontSize: 18 }} />
                                             <Typography variant="body2" color="text.secondary">إرسال:</Typography>
                                             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                {formatBytesPerSec(data.sent_bps)}
+                                                {formatBitsPerSec(data.sent_bps)}
                                             </Typography>
                                         </Box>
                                     </Box>

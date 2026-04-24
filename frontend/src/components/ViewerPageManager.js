@@ -1,24 +1,48 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box, Typography, Switch, FormControlLabel, TextField, Button,
-    Grid, Card, CardContent, Alert, CircularProgress, Chip,
-    Select, MenuItem, FormControl, InputLabel, List, ListItem, ListItemText,
-    ListItemIcon, Divider, Slider
+    Grid, Card, CardContent, Alert, CircularProgress,
+    Select, MenuItem, FormControl, InputLabel, Divider, Slider
 } from '@mui/material';
 import {
     Save as SaveIcon,
-    Visibility as VisibilityIcon,
-    VisibilityOff as VisibilityOffIcon,
     LiveTv as LiveTvIcon,
     Launch as LaunchIcon,
     Refresh as RefreshIcon,
-    CloudUpload as CloudUploadIcon,
-    FiberManualRecord as DotIcon
+    CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import useMistStreamStatus from '../hooks/useMistStreamStatus';
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const roundToStep = (value, step) => Math.round(value / step) * step;
+
+const normalizeEssentialSettings = (source) => ({
+    ...source,
+    show_channel_list: true,
+    show_controls: true,
+    enable_fullscreen: true,
+    enable_volume_control: true,
+});
+
+const mapBufferLevelToSettings = (level) => {
+    const normalized = clamp(Number(level) || 50, 0, 100);
+    const bufferSize = roundToStep(15 + (normalized / 100) * 45, 5);
+    const maxBufferLength = roundToStep(bufferSize * 2.2, 10);
+    const liveBackBufferLength = roundToStep(Math.max(10, bufferSize * 0.7), 5);
+    return {
+        buffer_size: bufferSize,
+        max_buffer_length: maxBufferLength,
+        live_back_buffer_length: liveBackBufferLength,
+    };
+};
+
+const mapSettingsToBufferLevel = (settings) => {
+    const bufferSize = Number(settings.buffer_size) || 30;
+    return clamp(Math.round(((bufferSize - 15) / 45) * 100), 0, 100);
+};
+
 const ViewerPageManager = ({ auth }) => {
-    const { channelStats, wsConnected } = useMistStreamStatus();
+    useMistStreamStatus();
 
     const [settings, setSettings] = useState({
         is_enabled: false,
@@ -27,8 +51,6 @@ const ViewerPageManager = ({ auth }) => {
         page_logo_url: '',
         show_channel_list: true,
         show_viewer_count: true,
-        default_channel: '',
-        auto_play: false,
         show_controls: true,
         streaming_format: 'hls',
         enable_fullscreen: true,
@@ -66,7 +88,7 @@ const ViewerPageManager = ({ auth }) => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setSettings(data);
+                setSettings(normalizeEssentialSettings(data));
             } else {
                 throw new Error('فشل في جلب الإعدادات');
             }
@@ -108,16 +130,17 @@ const ViewerPageManager = ({ auth }) => {
     }, [fetchSettings, fetchChannels]);
 
     const handleSettingChange = async (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
+        setSettings((prev) => ({ ...prev, [key]: value }));
         if (key === 'is_enabled') {
             try {
+                const payload = normalizeEssentialSettings({ ...settings, [key]: value });
                 await fetch('/api/viewer-page/settings', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Basic ${auth}`
                     },
-                    body: JSON.stringify({ ...settings, [key]: value })
+                    body: JSON.stringify(payload)
                 });
                 setMessage(value ? 'تم تفعيل صفحة المشاهدة' : 'تم تعطيل صفحة المشاهدة');
                 setTimeout(() => setMessage(''), 3000);
@@ -150,7 +173,7 @@ const ViewerPageManager = ({ auth }) => {
         try {
             const newLogoUrl = await uploadLogoIfNeeded();
             const payload = {
-                ...settings,
+                ...normalizeEssentialSettings(settings),
                 page_logo_url: newLogoUrl ?? settings.page_logo_url,
             };
 
@@ -167,7 +190,7 @@ const ViewerPageManager = ({ auth }) => {
                 setTimeout(() => setMessage(''), 3000);
                 setLogoFile(null);
                 const data = await response.json().catch(() => null);
-                if (data) setSettings(data);
+                if (data) setSettings(normalizeEssentialSettings(data));
             } else {
                 throw new Error('فشل في حفظ الإعدادات');
             }
@@ -193,12 +216,21 @@ const ViewerPageManager = ({ auth }) => {
         setSettings((prev) => ({
             ...prev,
             hidden_channels: JSON.stringify(nextHidden),
-            default_channel: nextHidden.includes(prev.default_channel) ? '' : prev.default_channel
         }));
     };
 
     const getViewerPageUrl = () => `${window.location.origin}/mubasher`;
     const openViewerPage = () => window.open(getViewerPageUrl(), '_blank');
+    const bufferLevel = useMemo(() => mapSettingsToBufferLevel(settings), [settings.buffer_size]);
+    const bufferProfileLabel = useMemo(() => {
+        if (bufferLevel < 34) return 'تأخير أقل';
+        if (bufferLevel < 67) return 'متوازن';
+        return 'ثبات أعلى';
+    }, [bufferLevel]);
+    const handleBufferLevelChange = useCallback((_, value) => {
+        const next = mapBufferLevelToSettings(value);
+        setSettings((prev) => ({ ...prev, ...next }));
+    }, []);
 
     if (loading) {
         return (
@@ -307,23 +339,6 @@ const ViewerPageManager = ({ auth }) => {
                             </Box>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                            <FormControl fullWidth size="small">
-                                <InputLabel>القناة الافتراضية</InputLabel>
-                                <Select
-                                    value={settings.default_channel || ''}
-                                    onChange={(e) => handleSettingChange('default_channel', e.target.value)}
-                                    label="القناة الافتراضية"
-                                >
-                                    <MenuItem value=""><em>بدون قناة افتراضية</em></MenuItem>
-                                    {channels
-                                        .filter((ch) => !hiddenChannelKeys.includes(getChannelKey(ch)))
-                                        .map((ch) => (
-                                        <MenuItem key={ch.id} value={ch.name}>{ch.name}</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
                                 label="وصف الصفحة"
@@ -337,12 +352,12 @@ const ViewerPageManager = ({ auth }) => {
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <FormControlLabel
-                                control={<Switch checked={settings.show_channel_list} onChange={(e) => handleSettingChange('show_channel_list', e.target.checked)} />}
-                                label="عرض قائمة القنوات"
-                            />
-                            <FormControlLabel
                                 control={<Switch checked={settings.show_viewer_count} onChange={(e) => handleSettingChange('show_viewer_count', e.target.checked)} />}
                                 label="عرض عدد المشاهدين"
+                            />
+                            <FormControlLabel
+                                control={<Switch checked={!!settings.show_matches_table} onChange={(e) => handleSettingChange('show_matches_table', e.target.checked)} />}
+                                label="إظهار زر جدول المباريات"
                             />
                         </Grid>
                     </Grid>
@@ -369,26 +384,6 @@ const ViewerPageManager = ({ auth }) => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} md={8}>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                <FormControlLabel
-                                    control={<Switch checked={settings.auto_play} onChange={(e) => handleSettingChange('auto_play', e.target.checked)} />}
-                                    label="تشغيل تلقائي"
-                                />
-                                <FormControlLabel
-                                    control={<Switch checked={settings.show_controls} onChange={(e) => handleSettingChange('show_controls', e.target.checked)} />}
-                                    label="أدوات التحكم"
-                                />
-                                <FormControlLabel
-                                    control={<Switch checked={settings.enable_fullscreen} onChange={(e) => handleSettingChange('enable_fullscreen', e.target.checked)} />}
-                                    label="شاشة كاملة"
-                                />
-                                <FormControlLabel
-                                    control={<Switch checked={settings.enable_volume_control} onChange={(e) => handleSettingChange('enable_volume_control', e.target.checked)} />}
-                                    label="التحكم بالصوت"
-                                />
-                            </Box>
-                        </Grid>
                     </Grid>
                 </CardContent>
             </Card>
@@ -396,70 +391,34 @@ const ViewerPageManager = ({ auth }) => {
             {/* التحكم في البافر */}
             <Card sx={{ mb: 3 }}>
                 <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>التحكم في البافر</Typography>
+                    <Typography variant="h6" sx={{ mb: 1 }}>استقرار البث</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        مؤشر واحد فقط: كلما رفعت القيمة زاد الثبات (بافر أكبر) وكلما خفضتها قل التأخير.
+                    </Typography>
                     <Divider sx={{ mb: 2 }} />
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="body2" gutterBottom>حجم البافر (ث): {settings.buffer_size || 30}</Typography>
-                            <Slider
-                                value={settings.buffer_size || 30}
-                                onChange={(e, val) => handleSettingChange('buffer_size', val)}
-                                min={5}
-                                max={120}
-                                step={5}
-                                valueLabelDisplay="auto"
-                                size="small"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="body2" gutterBottom>الحد الأقصى (ث): {settings.max_buffer_length || 60}</Typography>
-                            <Slider
-                                value={settings.max_buffer_length || 60}
-                                onChange={(e, val) => handleSettingChange('max_buffer_length', val)}
-                                min={10}
-                                max={300}
-                                step={10}
-                                valueLabelDisplay="auto"
-                                size="small"
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="body2" gutterBottom>البافر الخلفي (ث): {settings.live_back_buffer_length || 30}</Typography>
-                            <Slider
-                                value={settings.live_back_buffer_length || 30}
-                                onChange={(e, val) => handleSettingChange('live_back_buffer_length', val)}
-                                min={0}
-                                max={120}
-                                step={5}
-                                valueLabelDisplay="auto"
-                                size="small"
-                            />
-                        </Grid>
-                    </Grid>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                        قيم أصغر = تأخير أقل. للبث المباشر يُنصح 15–30 ثانية.
+                    <Typography variant="body2" gutterBottom>
+                        مستوى الاستقرار: {bufferLevel}% ({bufferProfileLabel})
                     </Typography>
-                </CardContent>
-            </Card>
-
-            {/* جدول مباريات اليوم */}
-            <Card sx={{ mb: 3 }}>
-                <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="h6">جدول مباريات اليوم</Typography>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={!!settings.show_matches_table}
-                                    onChange={(e) => handleSettingChange('show_matches_table', e.target.checked)}
-                                />
-                            }
-                            label={settings.show_matches_table ? 'مفعل' : 'معطل'}
-                        />
+                    <Slider
+                        value={bufferLevel}
+                        onChange={handleBufferLevelChange}
+                        min={0}
+                        max={100}
+                        step={5}
+                        valueLabelDisplay="auto"
+                        size="small"
+                    />
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                            البافر: {settings.buffer_size || 30}ث
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            الحد الأقصى: {settings.max_buffer_length || 60}ث
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            الخلفي: {settings.live_back_buffer_length || 30}ث
+                        </Typography>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        يظهر زر في صفحة المشاهدة لجدول مباريات اليوم. البيانات تُحدّث تلقائياً كل ساعة.
-                    </Typography>
                 </CardContent>
             </Card>
 
@@ -470,71 +429,53 @@ const ViewerPageManager = ({ auth }) => {
                         <Typography variant="h6">القنوات المتاحة ({channels.length})</Typography>
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    {wsConnected && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                            <DotIcon sx={{ fontSize: 10, color: '#10b981' }} />
-                            <Typography variant="caption" color="text.secondary">قسم إدارة عرض واخفاء القنوات</Typography>
-                        </Box>
-                    )}
                     {channels.length > 0 ? (
-                        <List dense>
-                            {channels.slice(0, 8).map((ch) => {
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {channels.map((ch) => {
                                 const sk = ch.stream_key || ch.name;
-                                const live = channelStats[sk];
-                                const isLive = live?.status === 'active';
-                                const viewers = live?.connections ?? 0;
+                                const hidden = hiddenChannelKeys.includes(sk);
                                 return (
-                                    <ListItem key={ch.id} sx={{ py: 0.5 }}>
-                                        <ListItemIcon sx={{ minWidth: 36 }}>
-                                            <LiveTvIcon fontSize="small" color={ch.is_active ? 'success' : 'disabled'} />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={ch.name}
-                                            secondary={ch.category || '—'}
-                                        />
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            {isLive && viewers > 0 && (
-                                                <Chip
-                                                    icon={<VisibilityIcon sx={{ fontSize: 14 }} />}
-                                                    label={viewers}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    sx={{ height: 22, fontSize: '0.7rem' }}
-                                                />
-                                            )}
-                                            <Chip
-                                                icon={isLive ? <DotIcon sx={{ fontSize: 10, color: '#ef4444', animation: 'pulse 1.5s infinite' }} /> : undefined}
-                                                label={isLive ? 'مباشر' : ch.is_active ? 'نشط' : 'معطل'}
-                                                size="small"
-                                                color={isLive ? 'error' : ch.is_active ? 'success' : 'default'}
-                                                variant={isLive ? 'filled' : 'outlined'}
-                                                sx={isLive ? {
-                                                    '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } },
-                                                    fontWeight: 700,
-                                                } : {}}
-                                            />
-                                            <FormControlLabel
-                                                control={
-                                                    <Switch
-                                                        size="small"
-                                                        checked={!hiddenChannelKeys.includes(sk)}
-                                                        onChange={(e) => handleToggleChannelVisibility(ch, !e.target.checked)}
-                                                    />
-                                                }
-                                                label={!hiddenChannelKeys.includes(sk) ? 'ظاهر' : 'مخفي'}
-                                                sx={{ mr: 0, ml: 0.5 }}
-                                            />
-                                            {hiddenChannelKeys.includes(sk) && (
-                                                <VisibilityOffIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
-                                            )}
+                                    <Box
+                                        key={ch.id}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 2,
+                                            px: 1.5,
+                                            py: 1,
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            borderRadius: 1.5,
+                                            bgcolor: hidden ? 'action.hover' : 'background.paper',
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
+                                            <LiveTvIcon fontSize="small" color={hidden ? 'disabled' : 'primary'} />
+                                            <Box sx={{ minWidth: 0 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                                                    {ch.name}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" noWrap>
+                                                    {ch.category || 'بدون تصنيف'}
+                                                </Typography>
+                                            </Box>
                                         </Box>
-                                    </ListItem>
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    size="small"
+                                                    checked={!hidden}
+                                                    onChange={(e) => handleToggleChannelVisibility(ch, !e.target.checked)}
+                                                />
+                                            }
+                                            label={!hidden ? 'ظاهر' : 'مخفي'}
+                                            sx={{ m: 0 }}
+                                        />
+                                    </Box>
                                 );
                             })}
-                            {channels.length > 8 && (
-                                <ListItem><ListItemText primary={`و ${channels.length - 8} قنوات أخرى`} primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }} /></ListItem>
-                            )}
-                        </List>
+                        </Box>
                     ) : (
                         <Typography variant="body2" color="text.secondary">لا توجد قنوات. أضفها من تاب التفعيل والقنوات.</Typography>
                     )}

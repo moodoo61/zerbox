@@ -141,6 +141,26 @@ def _run_systemctl(cmd: list, timeout: int = 90) -> tuple:
     return ok2, (out + "\n" + out2).strip()
 
 
+def _force_update_mistserver_conf() -> tuple:
+    """
+    نجعل mistserver.conf يطابق نسخة origin/main دائماً أثناء التحديث.
+    هذا يمنع فشل git pull بسبب تعديلات محلية ناتجة عن MistServer.
+    """
+    rel_path = "mistserver.conf"
+
+    tracked_ok, _ = _run_cmd(["git", "ls-files", "--error-unmatch", rel_path])
+    if not tracked_ok:
+        return True, "mistserver.conf غير مُتعقّب"
+
+    # لو كان مفعّل skip-worktree سابقاً على هذا الجهاز، نعطّله حتى نستطيع تحديث الملف.
+    _run_cmd(["git", "update-index", "--no-skip-worktree", rel_path])
+
+    ok, out = _run_cmd(["git", "restore", "--source=origin/main", "--staged", "--worktree", "--", rel_path])
+    if not ok:
+        return False, out
+    return True, "تمت مزامنة mistserver.conf مع origin/main"
+
+
 def _sync_quran_service_unit() -> tuple:
     """
     مزامنة zero-quran.service تلقائياً بعد التحديث:
@@ -186,6 +206,12 @@ def _do_update(target_version: str):
             return
 
         _set_state("updating", 15, "جاري تنزيل الملفات الجديدة...", "git_pull")
+
+        ok_conf, out_conf = _force_update_mistserver_conf()
+        if not ok_conf:
+            _set_state("error", 15, f"فشل تحديث ملف الإعداد mistserver.conf: {out_conf}", error=out_conf)
+            log_event(f"فشل تحديث mistserver.conf قبل pull: {out_conf}", "error", "updater")
+            return
 
         ok, out = _run_cmd(["git", "pull", "origin", "main"])
         if not ok:
