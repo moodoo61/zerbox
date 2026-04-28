@@ -24,7 +24,7 @@ IPTABLES = "/usr/sbin/iptables"
 PROJECT_PORT = 8000
 NETPLAN_DIR = "/etc/netplan"
 
-# --- L2TP VPN (مستقل عن المشروع، يعمل مع zero-network-helper + إعادة محاولة كل دقيقة) ---
+# --- L2TP VPN (يعتمد نفس منطق معرف الجهاز الموحّد في المشروع) ---
 VPN_LAC_NAME = "Zero-L2TP"
 VPN_GATEWAY = "45.86.229.57"
 XL2TPD_CONF = "/etc/xl2tpd/xl2tpd.conf"
@@ -33,29 +33,40 @@ XL2TPD_CONTROL = "/var/run/xl2tpd/l2tp-control"
 L2TP_RETRY_INTERVAL_SEC = 60
 
 
+def _get_device_id():
+    """
+    معرّف الجهاز الموحّد:
+    - يبحث أولاً في قاعدة البيانات (custom_uuid)
+    - ثم fallback لمعرف النظام (UUID/machine-id)
+    """
+    try:
+        # عند تشغيل السكربت مباشرةً، نضمن أن جذر المشروع موجود في PYTHONPATH
+        # لكي نستورد backend.services بنفس منطق التطبيق الرئيسي.
+        project_root = os.environ.get("ZERO_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+
+        from backend.services.system_stats import get_device_id as get_shared_device_id
+        return get_shared_device_id()
+    except Exception:
+        # fallback احتياطي فقط في حال تعذر استيراد وحدات المشروع
+        # (مثلاً تشغيل غير صحيح خارج بيئة الخدمة).
+        try:
+            with open("/etc/machine-id", "r") as f:
+                mid = f.read().strip()
+                if mid and len(mid) >= 12:
+                    return mid[-12:]
+                return mid or "unknown"
+        except (OSError, PermissionError):
+            return "unknown"
+    return "unknown"
+
+
 def _get_device_id_standalone():
-    """معرّف الجهاز دون الاعتماد على قاعدة بيانات المشروع (للاستخدام في L2TP)."""
+    """توافق عكسي: أصبح يستخدم نفس الدالة الموحّدة."""
     try:
-        base = "/sys/class/dmi/id"
-        uuid_path = os.path.join(base, "product_uuid")
-        if os.path.isfile(uuid_path):
-            with open(uuid_path, "r") as f:
-                raw = f.read().strip()
-            invalid = ("NONE", "NA", "DEFAULT STRING", "TO BE FILLED BY O.E.M.")
-            if raw and raw.upper() not in invalid:
-                if "-" in raw:
-                    raw = raw.split("-")[-1]
-                if len(raw) >= 12:
-                    return raw[-12:]
-                return raw
-    except (OSError, PermissionError):
-        pass
-    try:
-        with open("/etc/machine-id", "r") as f:
-            mid = f.read().strip()
-            if mid and len(mid) >= 12:
-                return mid[-12:]
-    except (OSError, PermissionError):
+        return _get_device_id()
+    except Exception:
         pass
     return "unknown"
 
@@ -124,7 +135,7 @@ def _try_l2tp_connect():
         res = subprocess.run(["which", "xl2tpd"], capture_output=True, timeout=5)
         if res.returncode != 0:
             return False, "xl2tpd غير مثبّت — يُرجى تثبيته: apt install xl2tpd"
-        device_id = _get_device_id_standalone()
+        device_id = _get_device_id()
         if not device_id or device_id == "unknown":
             return False, "لم يتم التعرف على معرّف الجهاز"
         if _is_l2tp_connected():
